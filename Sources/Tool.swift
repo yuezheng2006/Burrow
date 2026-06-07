@@ -21,18 +21,10 @@ enum Tool: String, CaseIterable, Identifiable {
     static let navOrder: [Tool] = [.clean, .apps, .optimize, .analyze, .status]
 
     /// Lowercase tab label (matches the instrument-panel voice).
-    var label: String { rawValue }
+    var label: String { L10n.toolLabel(self) }
 
     /// Title-case name for heroes / headings.
-    var title: String {
-        switch self {
-        case .clean:    return "Clean"
-        case .apps:     return "Software"
-        case .optimize: return "Optimize"
-        case .analyze:  return "Analyze"
-        case .status:   return "Status"
-        }
-    }
+    var title: String { L10n.toolTitle(self) }
 
     var glyph: String {
         switch self {
@@ -74,15 +66,7 @@ enum Tool: String, CaseIterable, Identifiable {
     }
 
     /// Our own one-liner per tool — earthy, in keeping with the name.
-    var tagline: String {
-        switch self {
-        case .clean:    return "Fresh air through old tunnels."
-        case .apps:     return "Shed what you've outgrown."
-        case .optimize: return "Small turns, a smoother run."
-        case .analyze:  return "Map every chamber below."
-        case .status:   return "Every pulse of the den."
-        }
-    }
+    var tagline: String { L10n.toolTagline(self) }
 }
 
 /// Everything the main window can show. The five tools plus Burrow's two

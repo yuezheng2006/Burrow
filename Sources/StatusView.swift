@@ -59,9 +59,9 @@ struct StatusView: View {
         VStack(spacing: 10) {
             Spacer(minLength: 120)
             ProgressView().controlSize(.large)
-            Text("Waiting for the first sample…")
+            Text(L10n.waitingForSample)
                 .font(Brand.mono(12)).foregroundStyle(Brand.textSecondary)
-            Text("Burrow runs `mo status --json` on a timer; the first row lands within a tick.")
+            Text(L10n.waitingHint)
                 .font(Brand.mono(10)).foregroundStyle(Brand.textTertiary)
             Spacer()
         }
@@ -75,10 +75,10 @@ struct StatusView: View {
         if let t = s.thermal, t.cpuTemp > 0 {
             chip = (String(format: "%.0f°C", t.cpuTemp), Brand.orange)
         } else {
-            chip = ("\(s.cpu.coreCount) cores", Brand.textSecondary)
+            chip = (L10n.cores(s.cpu.coreCount), Brand.textSecondary)
         }
         return MetricTile(
-            eyebrow: "CPU", glyph: "cpu", accent: Brand.green,
+            eyebrow: L10n.cpu, glyph: "cpu", accent: Brand.green,
             value: String(format: "%.1f", s.cpu.usage), unit: "%",
             chip: chip, values: model.cpuHist, chartStyle: .bars,
             footnote: String(format: "load %.2f · %.2f · %.2f", s.cpu.load1, s.cpu.load5, s.cpu.load15))
@@ -91,7 +91,7 @@ struct StatusView: View {
         let used = Double(m.used) / 1_073_741_824
         let total = Double(m.total) / 1_073_741_824
         return MetricTile(
-            eyebrow: "Memory", glyph: "memorychip", accent: Brand.amber,
+            eyebrow: L10n.memory, glyph: "memorychip", accent: Brand.amber,
             value: String(format: "%.0f", m.usedPercent), unit: "%",
             chip: (label, color), values: model.memHist, chartStyle: .area,
             footnote: String(format: "%.1f / %.1f GB · swap %.1f GB",
@@ -104,7 +104,7 @@ struct StatusView: View {
         let name = (g?.name ?? s.hardware.cpuModel).replacingOccurrences(of: "Apple ", with: "")
         let cores = (g?.coreCount ?? 0)
         return MetricTile(
-            eyebrow: "GPU", glyph: "cpu.fill", accent: Brand.orange,
+            eyebrow: L10n.gpu, glyph: "cpu.fill", accent: Brand.orange,
             value: hasUsage ? String(format: "%.0f", g!.usage) : "—",
             unit: hasUsage ? "%" : "",
             chip: nil, values: model.gpuHist, chartStyle: .area,
@@ -123,7 +123,7 @@ struct StatusView: View {
         var chip: (String, Color)? = nil
         if let p = s.proxy, p.enabled, !p.type.isEmpty { chip = (p.type, Brand.blue) }
         return MetricTile(
-            eyebrow: "Network", glyph: "network", accent: Brand.green,
+            eyebrow: L10n.network, glyph: "network", accent: Brand.green,
             value: value, unit: unit, chip: chip,
             values: model.netHist, chartStyle: .area,
             footnote: "↓ \(rate(rx))  ↑ \(rate(tx)) · \(net?.name ?? "—") · \(net?.ip ?? "—")")
@@ -183,7 +183,7 @@ struct HealthCard: View {
         GlassCard(minHeight: minHeight) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Eyebrow(text: "Health", glyph: "checkmark.seal.fill", color: Brand.gold)
+                    Eyebrow(text: L10n.health, glyph: "checkmark.seal.fill", color: Brand.gold)
                     Spacer(minLength: 4)
                     Text(specLine).font(Brand.mono(9)).foregroundStyle(Brand.textTertiary).lineLimit(1)
                 }
@@ -214,7 +214,7 @@ struct HealthCard: View {
     private var message: String {
         let m = s.healthScoreMsg
         if let r = m.range(of: ": ") { return String(m[r.upperBound...]) }
-        return m.isEmpty ? "All checks passed" : m
+        return m.isEmpty ? L10n.allChecksPassed : m
     }
     private var uptimeLine: String {
         let boot = Date().addingTimeInterval(-Double(s.uptimeSeconds))
@@ -254,13 +254,13 @@ struct DiskCard: View {
         return GlassCard(minHeight: minHeight) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
-                    Eyebrow(text: "Disk", glyph: "internaldrive", color: Brand.blue)
+                    Eyebrow(text: L10n.disk, glyph: "internaldrive", color: Brand.blue)
                     Spacer()
                     Chip(text: s.hardware.diskSize, color: Brand.textSecondary)
                 }
                 HStack(alignment: .firstTextBaseline, spacing: 4) {
                     Text(Fmt.gb(freeGB)).font(Brand.mono(26, .semibold)).foregroundStyle(Brand.textPrimary)
-                    Text("GB free").font(Brand.mono(11)).foregroundStyle(Brand.textSecondary)
+                    Text(L10n.gbFree).font(Brand.mono(11)).foregroundStyle(Brand.textSecondary)
                 }
                 ProgressBar(fraction: pct / 100, color: barColor)
                 Spacer(minLength: 2)
@@ -283,7 +283,7 @@ struct BatteryCard: View {
             if let b = s.batteries?.first {
                 VStack(alignment: .leading, spacing: 8) {
                     HStack {
-                        Eyebrow(text: "Battery", glyph: "battery.100", color: color(b))
+                        Eyebrow(text: L10n.battery, glyph: "battery.100", color: color(b))
                         Spacer()
                         Chip(text: b.health, color: b.health == "Good" ? Brand.green : Brand.gold)
                     }
@@ -299,9 +299,9 @@ struct BatteryCard: View {
                 }
             } else {
                 VStack(alignment: .leading, spacing: 8) {
-                    Eyebrow(text: "Power", glyph: "powerplug", color: Brand.green)
+                    Eyebrow(text: L10n.power, glyph: "powerplug", color: Brand.green)
                     Spacer()
-                    Text("AC Power").font(Brand.mono(20, .semibold)).foregroundStyle(Brand.textPrimary)
+                    Text(L10n.acPower).font(Brand.mono(20, .semibold)).foregroundStyle(Brand.textPrimary)
                     Spacer()
                 }
             }
@@ -353,10 +353,10 @@ struct ProcessCard: View {
 
     private func header(count: Int) -> some View {
         HStack(spacing: 10) {
-            sortButton("NAME (\(count))", .name)
+            sortButton(L10n.nameHeader(count: count), .name)
             Spacer(minLength: 8)
             sortButton("PID", .pid).frame(width: 54, alignment: .trailing)
-            sortButton("CPU", .cpu).frame(width: 92, alignment: .trailing)
+            sortButton(L10n.cpu, .cpu).frame(width: 92, alignment: .trailing)
             sortButton("MEM", .mem).frame(width: 54, alignment: .trailing)
         }
         .padding(.horizontal, 14)

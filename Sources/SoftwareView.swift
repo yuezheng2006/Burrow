@@ -57,7 +57,7 @@ struct SoftwareView: View {
             if model.segment == .uninstall {
                 ForEach(AppSort.allCases, id: \.self) { s in
                     Button { model.setSort(s) } label: {
-                        Text(s.rawValue.lowercased())
+                        Text(L10n.sortLabel(s))
                             .font(Brand.mono(11, model.sort == s ? .semibold : .regular))
                             .foregroundStyle(model.sort == s ? Tool.apps.accent : Brand.textSecondary)
                     }.buttonStyle(.plain)
@@ -69,8 +69,8 @@ struct SoftwareView: View {
 
     private var segmented: some View {
         HStack(spacing: 2) {
-            seg("Uninstall", .uninstall)
-            seg("Updates", .updates)
+            seg(L10n.uninstall, .uninstall)
+            seg(L10n.updates, .updates)
         }
         .padding(3)
         .background(Capsule().fill(Color.black.opacity(0.22)))
@@ -91,7 +91,7 @@ struct SoftwareView: View {
     private var searchField: some View {
         HStack(spacing: 5) {
             Image(systemName: "magnifyingglass").font(.system(size: 10)).foregroundStyle(Brand.textTertiary)
-            TextField("Search apps", text: $model.query)
+            TextField(L10n.searchApps, text: $model.query)
                 .textFieldStyle(.plain).font(Brand.sans(12)).frame(width: 130)
         }
         .padding(.horizontal, 8).padding(.vertical, 5)
@@ -104,7 +104,7 @@ struct SoftwareView: View {
         if model.segment == .updates {
             UpdatesView(model: updates)
         } else if model.loading {
-            VStack { Spacer(); ProgressView("Reading installed apps…").controlSize(.large).tint(Tool.apps.accent)
+            VStack { Spacer(); ProgressView(L10n.readingApps).controlSize(.large).tint(Tool.apps.accent)
                 .font(Brand.mono(11)); Spacer() }.frame(maxWidth: .infinity, maxHeight: .infinity)
         } else {
             ScrollView {
@@ -129,7 +129,7 @@ struct SoftwareView: View {
             Button {
                 model.confirmAndUninstall()
             } label: {
-                Text("Uninstall\(model.selected.isEmpty ? "" : " (\(model.selected.count))")")
+                Text(L10n.uninstallCount(model.selected.count))
                     .font(Brand.sans(12, .semibold))
                     .foregroundStyle(model.selected.isEmpty ? Brand.textTertiary : .white)
                     .padding(.horizontal, 14).padding(.vertical, 6)
@@ -205,9 +205,9 @@ final class SoftwareModel: ObservableObject {
     }
 
     var selectionLabel: String {
-        if selected.isEmpty { return "\(apps.count) apps" }
+        if selected.isEmpty { return L10n.appCount(apps.count) }
         let total = apps.filter { selected.contains($0.id) }.reduce(Int64(0)) { $0 + $1.sizeBytes }
-        return "\(selected.count) selected · \(Fmt.bytes(total))"
+        return L10n.selectedBytes(count: selected.count, bytes: Fmt.bytes(total))
     }
 
     func startIfNeeded() {
@@ -292,12 +292,12 @@ final class SoftwareModel: ObservableObject {
         let targets = apps.filter { selected.contains($0.id) }
         guard !targets.isEmpty else { return }
         let alert = NSAlert()
-        alert.messageText = "Uninstall \(targets.count) app\(targets.count == 1 ? "" : "s")?"
-        alert.informativeText = "These move to the Trash (recoverable):\n\n"
+        alert.messageText = L10n.uninstallAppsTitle(targets.count)
+        alert.informativeText = L10n.trashRecoverable + "\n\n"
             + targets.map { "• \($0.name)" }.joined(separator: "\n")
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Move to Trash")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L10n.moveToTrash)
+        alert.addButton(withTitle: L10n.cancel)
         guard alert.runModal() == .alertFirstButtonReturn else { return }
 
         let names = targets.map { $0.uninstallName }

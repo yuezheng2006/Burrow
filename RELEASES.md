@@ -1,28 +1,24 @@
-# Burrow 0.4.0
+# Burrow 0.5.0 — 中文版
 
-The first release as a full, open-source **mole.fit** — a native macOS GUI
-for the [Mole](https://github.com/tw93/Mole) CLI (`mo`).
+首个面向中文用户的 Burrow 版本：界面默认简体中文，可在设置中切换 English。
 
-## Five tools, one window
-- **Status** — live dashboard: health score, CPU, memory, GPU, disk,
-  network, battery with per-metric sparklines, and a sortable/pinnable
-  process table.
-- **Analyze** — squarified treemap of your disk; drill in, reveal in Finder.
-- **Software** — installed-app list with search/sort + multi-select
-  uninstall, plus a Homebrew **Updates** tab.
-- **Clean** — preview what's reclaimable, then clean for real.
-- **Optimize** — one-tap safe maintenance.
+## 新特性
+- **简体中文界面** — 五大工具、设置、菜单栏 HUD、历史页等全面中文化
+- **语言切换** — 设置 → 语言：简体中文 / English
+- **中文文档** — `README.zh-CN.md`
+- **测试增强** — 47 项单元测试（含 L10n / Tool 双语覆盖）
 
-## Burrow's own extras
-- **Menu-bar HUD** with live status of jobs running in the app.
-- **History** — long-range charts (5 m → 90 d) over a local SQLite history.
-- **MCP server** (HTTP + `Burrow --mcp` stdio) for Claude Code.
+## 五大工具
+- **清理** — 预览可释放空间，然后正式清理
+- **软件** — 已安装应用管理 + Homebrew 更新
+- **优化** — 一键安全维护
+- **分析** — 磁盘 squarified 树图
+- **状态** — 实时系统监控仪表盘
 
-## Requirements
+## 系统要求
 - macOS 14+
 - `brew install mole`
 
-## Install notes
-Unsigned build for now. After copying to `/Applications`:
-`xattr -cr /Applications/Burrow.app`, or right-click → Open the first time.
-A notarized release + Homebrew cask are planned.
+## 安装说明
+未签名构建。解压到 `/Applications` 后执行：
+`xattr -cr /Applications/Burrow.app`，或首次启动时右键 → 打开。

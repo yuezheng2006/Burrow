@@ -26,7 +26,7 @@ struct UpdatesView: View {
     var body: some View {
         Group {
             if model.loading && model.items.isEmpty {
-                center { ProgressView("Checking Homebrew…").controlSize(.large).tint(Tool.apps.accent).font(Brand.mono(11)) }
+                center { ProgressView(L10n.checkingHomebrew).controlSize(.large).tint(Tool.apps.accent).font(Brand.mono(11)) }
             } else if let e = model.error {
                 center {
                     VStack(spacing: 10) {
@@ -39,8 +39,8 @@ struct UpdatesView: View {
                 center {
                     VStack(spacing: 10) {
                         Image(systemName: "checkmark.seal.fill").font(.system(size: 30)).foregroundStyle(Brand.green)
-                        Text("Everything's up to date").font(Brand.serif(18)).foregroundStyle(Brand.textPrimary)
-                        Text("Homebrew formulae & casks").font(Brand.mono(10)).foregroundStyle(Brand.textTertiary)
+                        Text(L10n.everythingUpToDate).font(Brand.serif(18)).foregroundStyle(Brand.textPrimary)
+                        Text(L10n.homebrewFormulaeCasks).font(Brand.mono(10)).foregroundStyle(Brand.textTertiary)
                     }
                 }
             } else {
@@ -64,13 +64,13 @@ struct UpdatesView: View {
 
     private var header: some View {
         HStack(spacing: 10) {
-            Text("\(model.items.count) update\(model.items.count == 1 ? "" : "s")")
+            Text(L10n.updateCount(model.items.count))
                 .font(Brand.mono(12)).foregroundStyle(Brand.textSecondary)
             Spacer()
             Button { model.reload() } label: {
                 Image(systemName: "arrow.clockwise").font(.system(size: 11, weight: .semibold)).foregroundStyle(Brand.textSecondary)
             }.buttonStyle(.plain)
-            PillButton(title: model.upgrading.isEmpty ? "Update all" : "Updating…") {
+            PillButton(title: model.upgrading.isEmpty ? L10n.updateAll : L10n.updating) {
                 model.upgradeAll()
             }
         }
@@ -90,7 +90,7 @@ struct UpdatesView: View {
                 ProgressView().controlSize(.small).scaleEffect(0.8).frame(width: 64)
             } else {
                 Button { model.upgrade(item) } label: {
-                    Text("Update").font(Brand.sans(11, .semibold)).foregroundStyle(.white)
+                    Text(L10n.update).font(Brand.sans(11, .semibold)).foregroundStyle(.white)
                         .padding(.horizontal, 12).padding(.vertical, 5)
                         .background(Capsule().fill(Tool.apps.accent))
                 }.buttonStyle(.plain).frame(width: 64)
@@ -115,7 +115,7 @@ final class UpdatesModel: ObservableObject {
     func startIfNeeded() { if !started { started = true; reload() } }
 
     func reload() {
-        guard let brew = Self.brewPath() else { error = "Homebrew (`brew`) not found on this Mac."; return }
+        guard let brew = Self.brewPath() else { error = L10n.brewNotFound; return }
         loading = true; error = nil
         DispatchQueue.global(qos: .userInitiated).async {
             let r = Self.runBrew(brew, ["outdated", "--json=v2"])

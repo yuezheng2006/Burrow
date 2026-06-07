@@ -7,13 +7,13 @@
 #   brew install --cask caezium/tap/burrow
 #
 cask "burrow" do
-  version "0.4.0"
-  sha256 "1db64cb10da2c63b203b1dc012c8b57b27003882f4b47db93da8869b7bb67c33"
+  version "0.5.0"
+  sha256 "6885d901e46dba4011f8179f4575d2ff27f660ffd5df0b50aec409a8f090cd61"
 
-  url "https://github.com/caezium/Burrow/releases/download/v#{version}/Burrow-#{version}.zip"
+  url "https://github.com/yuezheng2006/Burrow/releases/download/v#{version}/Burrow-#{version}.zip"
   name "Burrow"
-  desc "Free, open-source native GUI for the Mole CLI"
-  homepage "https://github.com/caezium/Burrow"
+  desc "Free, open-source native GUI for the Mole CLI (Chinese UI)"
+  homepage "https://github.com/yuezheng2006/Burrow"
 
   depends_on formula: "mole"
   depends_on macos: ">= :sonoma"

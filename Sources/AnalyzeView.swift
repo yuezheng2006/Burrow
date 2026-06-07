@@ -85,7 +85,7 @@ struct AnalyzeView: View {
             Rectangle().fill(Brand.hairline).frame(height: 1)
             ZStack {
                 if model.loading {
-                    ProgressView("Scanning…").controlSize(.large)
+                    ProgressView(L10n.scanning).controlSize(.large)
                         .font(Brand.mono(11)).tint(Tool.analyze.accent)
                 } else if let err = model.error {
                     VStack(spacing: 8) {

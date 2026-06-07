@@ -23,6 +23,7 @@ final class StoreTests: XCTestCase {
             "query_server_port",
             "query_server_enabled",
             "last_history_range_minutes",
+            "app_language",
         ] {
             UserDefaults.standard.removeObject(forKey: k)
         }
@@ -79,5 +80,16 @@ final class StoreTests: XCTestCase {
         XCTAssertTrue(Store.autoVacuum)
         Store.queryServerPort = 9999
         XCTAssertEqual(Store.queryServerPort, 9999)
+    }
+
+    func testLanguage_defaultsToChinese() {
+        XCTAssertEqual(Store.language, .zhHans)
+    }
+
+    func testLanguage_roundtrip() {
+        Store.language = .en
+        XCTAssertEqual(Store.language, .en)
+        Store.language = .zhHans
+        XCTAssertEqual(Store.language, .zhHans)
     }
 }

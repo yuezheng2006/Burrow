@@ -66,7 +66,7 @@ struct PopupView: View {
     private var waiting: some View {
         HStack(spacing: 8) {
             ProgressView().controlSize(.small)
-            Text("Waiting for the first sample…")
+            Text(L10n.waitingForSample)
                 .font(Brand.mono(11)).foregroundStyle(Brand.textSecondary)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
@@ -77,7 +77,7 @@ struct PopupView: View {
 
     private var activitySection: some View {
         VStack(alignment: .leading, spacing: 6) {
-            Eyebrow(text: "Activity", glyph: "bolt.fill", color: Brand.gold)
+            Eyebrow(text: L10n.activity, glyph: "bolt.fill", color: Brand.gold)
             ForEach(ops.ops) { op in
                 HStack(spacing: 8) {
                     opIcon(op.phase)
@@ -114,7 +114,7 @@ struct PopupView: View {
     private func healthHero(_ s: MoleStatus) -> some View {
         HStack(spacing: 10) {
             VStack(alignment: .leading, spacing: 3) {
-                Eyebrow(text: "Health", glyph: "checkmark.seal.fill", color: Brand.gold)
+                Eyebrow(text: L10n.health, glyph: "checkmark.seal.fill", color: Brand.gold)
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
                     Text("\(s.healthScore)").font(Brand.mono(24, .semibold)).foregroundStyle(Brand.textPrimary)
                     Text(HealthRating.label(s.healthScore)).font(Brand.sans(11, .medium))
@@ -140,15 +140,15 @@ struct PopupView: View {
 
     private func metricGrid(_ s: MoleStatus) -> some View {
         LazyVGrid(columns: [GridItem(.flexible(), spacing: 8), GridItem(.flexible(), spacing: 8)], spacing: 8) {
-            HUDTile(eyebrow: "CPU", glyph: "cpu", accent: Brand.green,
+            HUDTile(eyebrow: L10n.cpu, glyph: "cpu", accent: Brand.green,
                     value: String(format: "%.0f", s.cpu.usage), unit: "%",
                     values: model.cpuHist, style: .bars,
                     foot: String(format: "load %.2f", s.cpu.load1))
-            HUDTile(eyebrow: "Memory", glyph: "memorychip", accent: Brand.amber,
+            HUDTile(eyebrow: L10n.memory, glyph: "memorychip", accent: Brand.amber,
                     value: String(format: "%.0f", s.memory.usedPercent), unit: "%",
                     values: model.memHist, style: .area,
                     foot: String(format: "%.1f/%.0f GB", Double(s.memory.used) / 1_073_741_824, Double(s.memory.total) / 1_073_741_824))
-            HUDTile(eyebrow: "Network", glyph: "network", accent: Brand.green,
+            HUDTile(eyebrow: L10n.network, glyph: "network", accent: Brand.green,
                     value: netValue(s).0, unit: netValue(s).1,
                     values: model.netHist, style: .area,
                     foot: netFoot(s))
@@ -176,7 +176,7 @@ struct PopupView: View {
 
     private func topProcesses(_ s: MoleStatus) -> some View {
         VStack(alignment: .leading, spacing: 5) {
-            Eyebrow(text: "Top processes", glyph: "list.bullet", color: Brand.textSecondary)
+            Eyebrow(text: L10n.topProcesses, glyph: "list.bullet", color: Brand.textSecondary)
             ForEach(Array((s.topProcesses ?? []).prefix(4).enumerated()), id: \.offset) { _, p in
                 HStack(spacing: 8) {
                     Image(nsImage: AppIcon.image(for: p) ?? PopupView.blankIcon)
@@ -211,7 +211,7 @@ struct PopupView: View {
                 iconButton("clock.arrow.circlepath") { openHistory() }
                 iconButton("gearshape") { openSettings() }
                 Spacer()
-                Button("Open Burrow") { open(.tool(.status)) }
+                Button(L10n.openBurrow) { open(.tool(.status)) }
                     .buttonStyle(.plain)
                     .font(Brand.sans(11, .semibold)).foregroundStyle(Brand.textPrimary)
                 iconButton("power") { NSApp.terminate(nil) }
@@ -274,14 +274,14 @@ private struct DiskBatteryRows: View {
     var body: some View {
         HStack(spacing: 8) {
             if let disk = s.disks.first {
-                bar(eyebrow: "Disk", glyph: "internaldrive", accent: disk.usedPercent >= 90 ? Brand.red : Brand.blue,
+                bar(eyebrow: L10n.disk, glyph: "internaldrive", accent: disk.usedPercent >= 90 ? Brand.red : Brand.blue,
                     value: Fmt.gb((Double(disk.total) - Double(disk.used)) / 1_073_741_824) + " GB",
                     detail: String(format: "%.0f%% used", disk.usedPercent),
                     fraction: disk.usedPercent / 100,
                     barColor: disk.usedPercent >= 90 ? Brand.red : Brand.blue)
             }
             if let b = s.batteries?.first {
-                bar(eyebrow: "Battery", glyph: "battery.100",
+                bar(eyebrow: L10n.battery, glyph: "battery.100",
                     accent: b.percent <= 20 ? Brand.red : Brand.green,
                     value: String(format: "%.0f%%", b.percent),
                     detail: b.status == "charging" ? "charging" : "\(b.timeLeft) left",
@@ -314,11 +314,11 @@ private struct DiskBatteryRows: View {
 enum HealthRating {
     static func label(_ score: Int) -> String {
         switch score {
-        case 90...:   return "Excellent"
-        case 75..<90: return "Good"
-        case 60..<75: return "Fair"
-        case 40..<60: return "Poor"
-        default:      return "Critical"
+        case 90...:   return L10n.healthRating(90)
+        case 75..<90: return L10n.healthRating(80)
+        case 60..<75: return L10n.healthRating(70)
+        case 40..<60: return L10n.healthRating(50)
+        default:      return L10n.healthRating(30)
         }
     }
     static func color(_ score: Int) -> Color {
@@ -371,9 +371,9 @@ final class HUDModel: ObservableObject {
     private func refreshCurrent() {
         snap = sampler.lastSnapshot
         if let when = sampler.lastSampleAt {
-            freshness = "\(Int(Date().timeIntervalSince(when)))s ago"
+            freshness = L10n.secondsAgo(Int(Date().timeIntervalSince(when)))
         } else {
-            freshness = "no samples yet"
+            freshness = L10n.noSamplesYet
         }
     }
 

@@ -20,9 +20,9 @@ struct CleanView: View {
 
     var body: some View {
         if runner.phase == .idle {
-            ToolHero(tool: .clean, title: "Clean", subtitle: Tool.clean.tagline) {
-                PillButton(title: "Clean Now") { confirmReal() }
-                PillButton(title: "Preview", filled: false) { startDry() }
+            ToolHero(tool: .clean, title: Tool.clean.title, subtitle: Tool.clean.tagline) {
+                PillButton(title: L10n.cleanNow) { confirmReal() }
+                PillButton(title: L10n.preview, filled: false) { startDry() }
             }
         } else {
             let report = parseTaskReport(runner.lines)
@@ -30,8 +30,8 @@ struct CleanView: View {
                 statusBar.padding(.horizontal, 18).padding(.top, 4).padding(.bottom, 12)
                 Rectangle().fill(Brand.hairline).frame(height: 1)
                 if isDone, mode == .real {
-                    DoneBanner(accent: Tool.clean.accent, title: "Cleaned",
-                               detail: report.summary.map { "Freed up to \($0.space) · \($0.items) items" })
+                    DoneBanner(accent: Tool.clean.accent, title: L10n.cleaned,
+                               detail: report.summary.map { L10n.freedDetail(space: $0.space, items: $0.items) })
                 } else if mode == .dry, let s = report.summary {
                     summaryBanner(s)
                 }
@@ -47,12 +47,12 @@ struct CleanView: View {
             Spacer()
             if isDone {
                 Button { startDry() } label: {
-                    Label("Re-scan", systemImage: "arrow.clockwise")
+                    Label(L10n.rescan, systemImage: "arrow.clockwise")
                         .font(Brand.mono(11)).foregroundStyle(Brand.textSecondary)
                 }.buttonStyle(.plain)
             }
             if mode == .dry, isDone {
-                PillButton(title: "Clean for real") { confirmReal() }
+                PillButton(title: L10n.cleanForReal) { confirmReal() }
             }
         }
     }
@@ -61,9 +61,9 @@ struct CleanView: View {
         HStack(alignment: .firstTextBaseline, spacing: 6) {
             Text(s.space.isEmpty ? "—" : s.space)
                 .font(Brand.mono(24, .semibold)).foregroundStyle(Tool.clean.accent)
-            Text("to free").font(Brand.sans(13)).foregroundStyle(Brand.textSecondary)
+            Text(L10n.toFree).font(Brand.sans(13)).foregroundStyle(Brand.textSecondary)
             if !s.items.isEmpty {
-                Text("· \(s.items) items · \(s.categories) categories")
+                Text(L10n.itemsCategories(items: s.items, categories: s.categories))
                     .font(Brand.mono(11)).foregroundStyle(Brand.textTertiary)
             }
             Spacer()
@@ -76,24 +76,24 @@ struct CleanView: View {
 
     private var statusText: String {
         switch runner.phase {
-        case .running: return mode == .dry ? "Scanning your Mac…" : "Cleaning… don't quit."
-        case .done:    return mode == .dry ? "Preview — review, then clean for real." : "Done — caches cleared."
-        case .failed(let m): return "Failed: \(m)"
+        case .running: return mode == .dry ? L10n.scanningMac : L10n.cleaningDontQuit
+        case .done:    return mode == .dry ? L10n.previewReview : L10n.doneCachesCleared
+        case .failed(let m): return L10n.failedPrefix + m
         case .idle:    return ""
         }
     }
 
-    private func startDry() { mode = .dry; runner.run(["clean", "--dry-run"], label: "Scanning caches") }
+    private func startDry() { mode = .dry; runner.run(["clean", "--dry-run"], label: L10n.scanningCaches) }
 
     private func confirmReal() {
         let alert = NSAlert()
-        alert.messageText = "Clean caches for real?"
-        alert.informativeText = "Burrow will run `mo clean` with administrator rights. Cache files are removed permanently; Mole's whitelist and safety rules still apply."
+        alert.messageText = L10n.cleanCachesTitle
+        alert.informativeText = L10n.cleanCachesBody
         alert.alertStyle = .warning
-        alert.addButton(withTitle: "Clean")
-        alert.addButton(withTitle: "Cancel")
+        alert.addButton(withTitle: L10n.clean)
+        alert.addButton(withTitle: L10n.cancel)
         guard alert.runModal() == .alertFirstButtonReturn else { return }
         mode = .real
-        runner.run(["clean"], elevated: true, label: "Cleaning caches")
+        runner.run(["clean"], elevated: true, label: L10n.cleaningCaches)
     }
 }

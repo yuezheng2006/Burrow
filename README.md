@@ -2,6 +2,8 @@
 
 **A free, open-source [mole.fit](https://mole.fit/) — a native macOS GUI for the [Mole](https://github.com/tw93/Mole) CLI (`mo`).**
 
+> 中文文档：[README.zh-CN.md](README.zh-CN.md)（界面默认简体中文，可在设置中切换 English）
+
 ![macOS 14+](https://img.shields.io/badge/macOS-14%2B-black)
 ![License: MIT](https://img.shields.io/badge/License-MIT-blue)
 ![Requires mole](https://img.shields.io/badge/requires-brew%20install%20mole-orange)
@@ -169,8 +171,8 @@ xcodebuild -project Burrow.xcodeproj -scheme Burrow \
 ```
 
 38 tests: DB roundtrip + range + stride sampler + prune (10), Store
-clamping + defaults (9), Maintenance prune (3), MCP tool routing (7),
-squarified treemap invariants (9).
+clamping + defaults + language (11), Maintenance prune (3), MCP tool routing (7),
+squarified treemap invariants (9), L10n bilingual (5), Tool nav/labels (4).
 
 ## Architecture
 

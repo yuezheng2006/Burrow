@@ -19,6 +19,18 @@ import Foundation
 enum Store {
     private static let d = UserDefaults.standard
 
+    // MARK: - Language
+
+    /// UI language. Defaults to Simplified Chinese.
+    static var language: AppLanguage {
+        get {
+            guard let raw = d.string(forKey: "app_language"),
+                  let lang = AppLanguage(rawValue: raw) else { return .zhHans }
+            return lang
+        }
+        set { d.set(newValue.rawValue, forKey: "app_language") }
+    }
+
     // MARK: - Sampler
 
     /// Seconds between `mo status --json` invocations. Clamp to [5, 3600]

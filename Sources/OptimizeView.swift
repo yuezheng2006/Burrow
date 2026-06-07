@@ -17,9 +17,9 @@ struct OptimizeView: View {
 
     var body: some View {
         if runner.phase == .idle {
-            ToolHero(tool: .optimize, title: "Optimize", subtitle: Tool.optimize.tagline) {
-                PillButton(title: "Optimize") { preview = false; runner.run(["optimize"], elevated: true, label: "Optimizing") }
-                PillButton(title: "Preview", filled: false) { preview = true; runner.run(["optimize", "--dry-run"], label: "Optimize preview") }
+            ToolHero(tool: .optimize, title: Tool.optimize.title, subtitle: Tool.optimize.tagline) {
+                PillButton(title: L10n.optimize) { preview = false; runner.run(["optimize"], elevated: true, label: L10n.optimizing) }
+                PillButton(title: L10n.preview, filled: false) { preview = true; runner.run(["optimize", "--dry-run"], label: L10n.optimizePreview) }
             }
         } else {
             let report = parseTaskReport(runner.lines)
@@ -27,8 +27,8 @@ struct OptimizeView: View {
                 statusBar.padding(.horizontal, 18).padding(.top, 4).padding(.bottom, 12)
                 Rectangle().fill(Brand.hairline).frame(height: 1)
                 if isDone, !preview {
-                    DoneBanner(accent: Tool.optimize.accent, title: "Maintenance complete",
-                               detail: "\(report.groups.count) areas refreshed")
+                    DoneBanner(accent: Tool.optimize.accent, title: L10n.maintenanceComplete,
+                               detail: L10n.areasRefreshed(report.groups.count))
                 }
                 TaskReportView(groups: report.groups, accent: Tool.optimize.accent)
             }
@@ -41,8 +41,8 @@ struct OptimizeView: View {
             Text(statusText).font(Brand.mono(12)).foregroundStyle(Brand.textSecondary)
             Spacer()
             if isDone {
-                Button { preview = false; runner.run(["optimize"], elevated: true, label: "Optimizing") } label: {
-                    Label("Run again", systemImage: "arrow.clockwise")
+                Button { preview = false; runner.run(["optimize"], elevated: true, label: L10n.optimizing) } label: {
+                    Label(L10n.runAgain, systemImage: "arrow.clockwise")
                         .font(Brand.mono(11)).foregroundStyle(Brand.textSecondary)
                 }.buttonStyle(.plain)
             }
@@ -53,9 +53,9 @@ struct OptimizeView: View {
 
     private var statusText: String {
         switch runner.phase {
-        case .running: return preview ? "Previewing maintenance…" : "Running maintenance…"
-        case .done:    return preview ? "Preview complete." : "Maintenance complete."
-        case .failed(let m): return "Failed: \(m)"
+        case .running: return preview ? L10n.previewingMaintenance : L10n.runningMaintenance
+        case .done:    return preview ? L10n.previewComplete : L10n.maintenanceComplete
+        case .failed(let m): return L10n.failedPrefix + m
         case .idle:    return ""
         }
     }

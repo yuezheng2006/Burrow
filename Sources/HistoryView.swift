@@ -196,17 +196,17 @@ struct HistoryView: View {
                 Rectangle().fill(Brand.hairline).frame(height: 1)
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 13), GridItem(.flexible(), spacing: 13)], spacing: 13) {
-                        chartCard("CPU usage", "%", [("usage", snapshot.cpuUsage, Brand.green)])
-                        chartCard("CPU load", "1m avg", [("load1", snapshot.cpuLoad1, Brand.orange)])
-                        chartCard("Memory", snapshot.memoryPressure.isEmpty ? "% used" : snapshot.memoryPressure,
+                        chartCard(L10n.cpu + " usage", "%", [("usage", snapshot.cpuUsage, Brand.green)])
+                        chartCard(L10n.cpuLoad, "1m avg", [("load1", snapshot.cpuLoad1, Brand.orange)])
+                        chartCard(L10n.memory, snapshot.memoryPressure.isEmpty ? L10n.percentUsed : snapshot.memoryPressure,
                                   [("used", snapshot.memoryUsed, Brand.amber)])
-                        chartCard("Disk I/O", "MB/s", [("read", snapshot.diskRead, Brand.blue),
+                        chartCard(L10n.diskIO, "MB/s", [("read", snapshot.diskRead, Brand.blue),
                                                        ("write", snapshot.diskWrite, Color(hex: 0x6E8BEA))])
-                        chartCard("Network", "MB/s", [("rx", snapshot.netRx, Brand.green),
+                        chartCard(L10n.network, "MB/s", [("rx", snapshot.netRx, Brand.green),
                                                       ("tx", snapshot.netTx, Color(hex: 0x57C2A5))])
-                        chartCard("Thermal", "°C", [("cpu", snapshot.thermalCPU, Brand.red),
+                        chartCard(L10n.thermal, "°C", [("cpu", snapshot.thermalCPU, Brand.red),
                                                     ("gpu", snapshot.thermalGPU, Brand.orange)])
-                        chartCard("Health score", "0–100", [("health", snapshot.healthScore, Brand.gold)])
+                        chartCard(L10n.healthScore, "0–100", [("health", snapshot.healthScore, Brand.gold)])
                         topProcessesCard
                     }
                     .padding(16)
@@ -224,13 +224,13 @@ struct HistoryView: View {
 
     private var toolbar: some View {
         HStack(spacing: 12) {
-            Text("History").font(Brand.serif(22, .medium)).foregroundStyle(Brand.textPrimary)
+            Text(L10n.history).font(Brand.serif(22, .medium)).foregroundStyle(Brand.textPrimary)
             rangePills
             if loading { ProgressView().controlSize(.small) }
             Spacer()
-            Text("\(snapshot.rowCount) samples").font(Brand.mono(10)).foregroundStyle(Brand.textTertiary)
+            Text("\(snapshot.rowCount) \(L10n.samples)").font(Brand.mono(10)).foregroundStyle(Brand.textTertiary)
             if let s = snapshot.staleSeconds {
-                Text("· latest \(s)s ago").font(Brand.mono(10)).foregroundStyle(Brand.textTertiary)
+                Text(L10n.latestSecondsAgo(s)).font(Brand.mono(10)).foregroundStyle(Brand.textTertiary)
             }
             Button { reload() } label: {
                 Image(systemName: "arrow.clockwise").font(.system(size: 12, weight: .semibold))
@@ -271,7 +271,7 @@ struct HistoryView: View {
                     Text(subtitle).font(Brand.mono(9)).foregroundStyle(Brand.textTertiary)
                 }
                 if allEmpty {
-                    Text("No samples in this window")
+                    Text(L10n.noSamplesInWindow)
                         .font(Brand.mono(11)).foregroundStyle(Brand.textTertiary)
                         .frame(maxWidth: .infinity, minHeight: 170)
                 } else {
@@ -309,11 +309,11 @@ struct HistoryView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: 8) {
                 HStack(alignment: .firstTextBaseline, spacing: 6) {
-                    Text("TOP PROCESSES").font(Brand.mono(10, .bold)).tracking(0.7).foregroundStyle(Brand.textSecondary)
-                    Text("peak across window").font(Brand.mono(9)).foregroundStyle(Brand.textTertiary)
+                    Text(L10n.topProcesses.uppercased()).font(Brand.mono(10, .bold)).tracking(0.7).foregroundStyle(Brand.textSecondary)
+                    Text(L10n.topProcessesPeak).font(Brand.mono(9)).foregroundStyle(Brand.textTertiary)
                 }
                 if snapshot.topProcesses.isEmpty {
-                    Text("No processes recorded")
+                    Text(L10n.noProcessesRecorded)
                         .font(Brand.mono(11)).foregroundStyle(Brand.textTertiary)
                         .frame(maxWidth: .infinity, minHeight: 170)
                 } else {

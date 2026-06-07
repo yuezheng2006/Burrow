@@ -16,6 +16,7 @@ struct SettingsView: View {
     @State private var retentionDays: Int = Store.retentionDays
     @State private var autoVacuum: Bool = Store.autoVacuum
     @State private var queryServerEnabled: Bool = Store.queryServerEnabled
+    @State private var language: AppLanguage = Store.language
     @State private var dbSizeText: String = "—"
     @State private var lastMaintenanceText: String = "—"
 
@@ -25,42 +26,56 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 14) {
-                    Text("Settings").font(Brand.serif(24, .medium)).foregroundStyle(Brand.textPrimary)
+                    Text(L10n.settings).font(Brand.serif(24, .medium)).foregroundStyle(Brand.textPrimary)
 
-                    section("Storage", "internaldrive") {
-                        infoRow("Currently using", dbSizeText)
-                        infoRow("Last maintenance", lastMaintenanceText)
+                    section(L10n.languageLabel, "globe") {
+                        pickerRow(L10n.languageLabel, selection: Binding(
+                            get: { language.rawValue == AppLanguage.en.rawValue ? 1 : 0 },
+                            set: { language = $0 == 1 ? .en : .zhHans; Store.language = language }
+                        ), options: [(0, AppLanguage.zhHans.displayName), (1, AppLanguage.en.displayName)]) { _ in }
+                        footnote(L10n.languageChangeFootnote)
+                    }
+
+                    section(L10n.storage, "internaldrive") {
+                        infoRow(L10n.currentlyUsing, dbSizeText)
+                        infoRow(L10n.lastMaintenance, lastMaintenanceText)
                         HStack {
                             Spacer()
-                            PillButton(title: "Run maintenance now", filled: false) {
+                            PillButton(title: L10n.runMaintenanceNow, filled: false) {
                                 onRunMaintenance?(); refreshStatusLabels()
                             }
                         }
-                        footnote("History lives at ~/Library/Application Support/Burrow/burrow.db. Rows past the retention window are pruned hourly.")
+                        footnote(L10n.storageFootnote)
                     }
 
-                    section("History retention", "calendar") {
-                        pickerRow("Keep history for", selection: $retentionDays,
-                                  options: [(1, "1 day"), (7, "7 days"), (14, "14 days"),
-                                            (30, "30 days"), (90, "90 days"), (180, "180 days"), (365, "1 year")]) {
+                    section(L10n.historyRetention, "calendar") {
+                        pickerRow(L10n.keepHistoryFor, selection: $retentionDays,
+                                  options: [(1, L10n.retentionLabel(days: 1)), (7, L10n.retentionLabel(days: 7)),
+                                            (14, L10n.retentionLabel(days: 14)), (30, L10n.retentionLabel(days: 30)),
+                                            (90, L10n.retentionLabel(days: 90)), (180, L10n.retentionLabel(days: 180)),
+                                            (365, L10n.retentionLabel(days: 365))]) {
                             Store.retentionDays = $0
                         }
-                        toggleRow("Vacuum DB after large prunes", isOn: $autoVacuum) { Store.autoVacuum = $0 }
+                        toggleRow(L10n.vacuumAfterPrune, isOn: $autoVacuum) { Store.autoVacuum = $0 }
                     }
 
-                    section("Sampling", "waveform.path.ecg") {
-                        pickerRow("Sample every", selection: $sampleIntervalSeconds,
-                                  options: [(5, "5 sec"), (15, "15 sec"), (30, "30 sec"),
-                                            (60, "60 sec"), (120, "2 min"), (300, "5 min")]) {
+                    section(L10n.sampling, "waveform.path.ecg") {
+                        pickerRow(L10n.sampleEvery, selection: $sampleIntervalSeconds,
+                                  options: [(5, L10n.sampleIntervalLabel(seconds: 5)),
+                                            (15, L10n.sampleIntervalLabel(seconds: 15)),
+                                            (30, L10n.sampleIntervalLabel(seconds: 30)),
+                                            (60, L10n.sampleIntervalLabel(seconds: 60)),
+                                            (120, L10n.sampleIntervalLabel(seconds: 120)),
+                                            (300, L10n.sampleIntervalLabel(seconds: 300))]) {
                             Store.sampleIntervalSeconds = $0
                         }
-                        footnote("Burrow runs `mo status --json` at this cadence. 60 s is plenty for charts; tighter intervals give finer detail at the cost of more subprocess churn.")
+                        footnote(L10n.samplingFootnote)
                     }
 
-                    section("MCP query server", "antenna.radiowaves.left.and.right") {
-                        toggleRow("Enable MCP query server", isOn: $queryServerEnabled) { Store.queryServerEnabled = $0 }
-                        infoRow("Endpoint", "127.0.0.1:\(Store.queryServerPort)")
-                        footnote("Toggle + port changes take effect after a relaunch. Exposes /health, /info, /snapshot, /metrics over localhost, plus the `Burrow --mcp` stdio server for Claude Code.")
+                    section(L10n.mcpQueryServer, "antenna.radiowaves.left.and.right") {
+                        toggleRow(L10n.enableMcpServer, isOn: $queryServerEnabled) { Store.queryServerEnabled = $0 }
+                        infoRow(L10n.endpoint, "127.0.0.1:\(Store.queryServerPort)")
+                        footnote(L10n.mcpFootnote)
                     }
                 }
                 .padding(22)
@@ -139,9 +154,10 @@ struct SettingsView: View {
 
         if let last = AppDelegate.shared?.maintenance?.lastRunAt {
             let delta = Int(Date().timeIntervalSince(last))
-            self.lastMaintenanceText = "\(delta)s ago · pruned \(AppDelegate.shared?.maintenance?.lastPruneDeleted ?? 0) rows"
+            self.lastMaintenanceText = L10n.maintenanceAgo(seconds: delta,
+                                                         pruned: AppDelegate.shared?.maintenance?.lastPruneDeleted ?? 0)
         } else {
-            self.lastMaintenanceText = "not yet run"
+            self.lastMaintenanceText = L10n.notYetRun
         }
     }
 }
