@@ -20,5 +20,5 @@
 - `brew install mole`
 
 ## 安装说明
-未签名构建。解压到 `/Applications` 后执行：
+未签名构建。推荐下载 **DMG**（拖入「应用程序」）或 **ZIP**（解压到 `/Applications`），然后执行：
 `xattr -cr /Applications/Burrow.app`，或首次启动时右键 → 打开。

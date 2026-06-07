@@ -8,6 +8,8 @@ SDK=$(xcrun --show-sdk-path)
 BIN=build/manual/Burrow
 APP=build/Burrow.app
 ZIP="dist/Burrow-${VERSION}.zip"
+DMG="dist/Burrow-${VERSION}.dmg"
+STAGE=build/dmg-staging
 
 echo "==> compiling Burrow ${VERSION}"
 mkdir -p build/manual
@@ -32,8 +34,20 @@ rm -f "$ZIP"
 echo "==> zipping ${ZIP}"
 ditto -c -k --sequesterRsrc --keepParent "$APP" "$ZIP"
 
-SHA=$(shasum -a 256 "$ZIP" | awk '{print $1}')
+rm -f "$DMG"
+echo "==> creating ${DMG}"
+rm -rf "$STAGE"
+mkdir -p "$STAGE"
+cp -R "$APP" "$STAGE/"
+ln -s /Applications "$STAGE/Applications"
+hdiutil create -volname "Burrow ${VERSION}" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+rm -rf "$STAGE"
+
+ZIP_SHA=$(shasum -a 256 "$ZIP" | awk '{print $1}')
+DMG_SHA=$(shasum -a 256 "$DMG" | awk '{print $1}')
 echo
 echo "Built Burrow ${VERSION}"
-echo "  artifact : ${ZIP}"
-echo "  sha256   : ${SHA}"
+echo "  zip      : ${ZIP}"
+echo "  zip sha  : ${ZIP_SHA}"
+echo "  dmg      : ${DMG}"
+echo "  dmg sha  : ${DMG_SHA}"
