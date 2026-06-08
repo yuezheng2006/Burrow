@@ -1,0 +1,250 @@
+//
+//  AppDelegate.swift
+//  Fuchen
+//
+//  Launch order (matters):
+//
+//    1. Verify `mo` is on PATH. Hard requirement — if missing, modal
+//       alert with the install command, then quit.
+//    2. Open the SQLite history DB.
+//    3. Start QueryServer (Store-gated).
+//    4. Start Sampler (Store-configured cadence).
+//    5. Start Maintenance (hourly prune).
+//    6. Install the NSStatusItem.
+//
+//  Windows: v0.3 collapsed the four separate windows (History,
+//  DiskMap, Cleanup, Settings) into one main window with a sidebar.
+//  `openMainWindow(initial:)` is the one entry point — the popover's
+//  action buttons just deep-link by passing the section they want
+//  selected.
+//
+
+import Cocoa
+import SwiftUI
+
+final class AppDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
+    /// Singleton handle so SwiftUI views can reach the live
+    /// Maintenance / Sampler / DB without threading them through every
+    /// initializer.
+    static private(set) var shared: AppDelegate?
+
+    private(set) var db: DB?
+    private(set) var sampler: Sampler?
+    private(set) var maintenance: Maintenance?
+    private var queryServer: QueryServer?
+    private var statusBar: StatusBarController?
+
+    /// Single main window. Holds the sidebar + content router. The
+    /// `pendingInitialSection` is only used to pass the chosen tab
+    /// across the window-creation boundary; cleared once the window's
+    /// content view reads it.
+    private var mainWC: NSWindowController?
+    fileprivate var pendingInitialPane: Pane = .tool(.status)
+
+    func applicationDidFinishLaunching(_ notification: Notification) {
+        AppDelegate.shared = self
+        DarkAppearance.applyAppWide()
+
+        guard MoleCLI.findExecutable() != nil else {
+            MoleCLI.showMissingAlert()
+            NSApp.terminate(nil)
+            return
+        }
+
+        let db: DB
+        do {
+            db = try DB.openDefault()
+        } catch {
+            let alert = NSAlert()
+            alert.messageText = L10n.dbOpenFailedTitle
+            alert.informativeText = "\(error.localizedDescription)\n\n\(L10n.appWillQuit)"
+            alert.alertStyle = .critical
+            alert.runModal()
+            NSApp.terminate(nil)
+            return
+        }
+        self.db = db
+
+        let sampler = Sampler(db: db,
+                              intervalSeconds: TimeInterval(Store.sampleIntervalSeconds))
+        self.sampler = sampler
+        self.statusBar = StatusBarController(db: db, sampler: sampler, delegate: self)
+        self.setupMainMenu()
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(self.languageDidChange),
+            name: .fuchenLanguageDidChange,
+            object: nil
+        )
+
+        DispatchQueue.main.async { [weak self] in
+            self?.startBackgroundServices(db: db, sampler: sampler)
+        }
+
+        // First launch: open the main window. LSUIElement apps have no
+        // Dock icon until a window exists — Finder launches otherwise
+        // look like nothing happened.
+        if !Store.hasCompletedFirstLaunch, #available(macOS 14, *) {
+            Store.hasCompletedFirstLaunch = true
+            self.openMainWindow(initial: .tool(.status))
+        }
+
+        // Dev affordance: launch with FUCHEN_OPEN_ON_LAUNCH=1 to pop the
+        // main window straight away (used for screenshot/verify loops).
+        if let tab = Foundation.ProcessInfo.processInfo.environment["FUCHEN_OPEN_ON_LAUNCH"],
+           #available(macOS 14, *) {
+            let pane: Pane = (tab == "settings") ? .settings : (tab == "history") ? .history
+                : .tool(Tool(rawValue: tab) ?? .status)
+            self.openMainWindow(initial: pane)
+        }
+    }
+
+    func applicationWillTerminate(_ notification: Notification) {
+        self.sampler?.stop()
+        self.queryServer?.stop()
+        self.maintenance?.stop()
+    }
+
+    // MARK: - Window
+
+    /// Open the main window, focusing the requested section. If the
+    /// window already exists, just selects the section and brings the
+    /// window forward. Used by every popover action button —
+    /// `openMainWindow(initial: .cleanup)` etc.
+    @available(macOS 14.0, *)
+    func openMainWindow(initial: Pane = .tool(.status)) {
+        if let wc = self.mainWC, let window = wc.window {
+            NotificationCenter.default.post(
+                name: .fuchenNavigate,
+                object: nil,
+                userInfo: ["pane": initial])
+            DarkAppearance.apply(to: window)
+            NSApp.setActivationPolicy(.regular)
+            window.makeKeyAndOrderFront(nil)
+            NSApp.activate(ignoringOtherApps: true)
+            return
+        }
+
+        guard self.db != nil, self.sampler != nil else { return }
+        let window = NSWindow(
+            contentRect: NSRect(x: 0, y: 0, width: 1120, height: 740),
+            styleMask: [.titled, .closable, .resizable, .miniaturizable, .fullSizeContentView],
+            backing: .buffered, defer: false)
+        // Frameless-feeling translucent shell: transparent titlebar with
+        // the traffic lights floating over content, a clear non-opaque
+        // window so the behind-window vibrancy can sample the wallpaper,
+        // and drag-anywhere so there's no visible chrome bar.
+        window.titlebarAppearsTransparent = true
+        window.titleVisibility = .hidden
+        window.title = L10n.appName
+        window.isOpaque = false
+        window.backgroundColor = .clear
+        window.isMovableByWindowBackground = true
+        window.center()
+        window.isReleasedWhenClosed = false
+        window.minSize = NSSize(width: 940, height: 640)
+        window.delegate = self
+        DarkAppearance.apply(to: window)
+
+        // Show a Dock icon (and Cmd-Tab presence) while the dashboard is
+        // open; we drop back to a pure menu-bar agent when it closes. The
+        // icon itself comes from Assets.xcassets/AppIcon.
+        NSApp.setActivationPolicy(.regular)
+
+        let wc = NSWindowController(window: window)
+        self.mainWC = wc
+        self.installMainContent(into: window, initial: initial)
+        wc.showWindow(nil)
+        NSApp.activate(ignoringOtherApps: true)
+    }
+
+    @available(macOS 14.0, *)
+    private func installMainContent(into window: NSWindow, initial: Pane) {
+        guard let db = self.db, let sampler = self.sampler else { return }
+        let root = RootView(db: db, sampler: sampler, delegate: self, initialPane: initial)
+        let host = NSHostingController(rootView: root)
+        host.view.wantsLayer = true
+        host.view.layer?.backgroundColor = .clear
+        DarkAppearance.apply(to: host.view)
+        window.contentViewController = host
+    }
+
+    // MARK: - Window delegate
+
+    func windowWillClose(_ notification: Notification) {
+        // Dashboard closed → back to a pure menu-bar agent (no Dock icon).
+        NSApp.setActivationPolicy(.accessory)
+    }
+
+    // MARK: - Main menu
+
+    /// Minimal AppKit main menu — shows when the app is active (.regular,
+    /// i.e. a window open). Gives a real ⌘, (Settings pane), proper Quit,
+    /// and an Edit menu so text fields get cut/copy/paste/select-all.
+    private func setupMainMenu() {
+        let mainMenu = NSMenu()
+
+        // App menu
+        let appItem = NSMenuItem()
+        mainMenu.addItem(appItem)
+        let appMenu = NSMenu()
+        appItem.submenu = appMenu
+        appMenu.addItem(withTitle: L10n.aboutApp,
+                        action: #selector(NSApplication.orderFrontStandardAboutPanel(_:)), keyEquivalent: "")
+        appMenu.addItem(.separator())
+        let settings = NSMenuItem(title: L10n.settingsMenu,
+                                  action: #selector(openSettingsFromMenu), keyEquivalent: ",")
+        settings.target = self
+        appMenu.addItem(settings)
+        appMenu.addItem(.separator())
+        appMenu.addItem(withTitle: L10n.hideApp, action: #selector(NSApplication.hide(_:)), keyEquivalent: "h")
+        appMenu.addItem(withTitle: L10n.quitApp, action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+
+        // Edit menu (text editing in search fields etc.)
+        let editItem = NSMenuItem()
+        mainMenu.addItem(editItem)
+        let editMenu = NSMenu(title: L10n.editMenu)
+        editItem.submenu = editMenu
+        editMenu.addItem(withTitle: L10n.undo, action: Selector(("undo:")), keyEquivalent: "z")
+        editMenu.addItem(withTitle: L10n.redo, action: Selector(("redo:")), keyEquivalent: "Z")
+        editMenu.addItem(.separator())
+        editMenu.addItem(withTitle: L10n.cut, action: #selector(NSText.cut(_:)), keyEquivalent: "x")
+        editMenu.addItem(withTitle: L10n.copy, action: #selector(NSText.copy(_:)), keyEquivalent: "c")
+        editMenu.addItem(withTitle: L10n.paste, action: #selector(NSText.paste(_:)), keyEquivalent: "v")
+        editMenu.addItem(withTitle: L10n.selectAll, action: #selector(NSText.selectAll(_:)), keyEquivalent: "a")
+
+        // Window menu
+        let winItem = NSMenuItem()
+        mainMenu.addItem(winItem)
+        let winMenu = NSMenu(title: L10n.windowMenu)
+        winItem.submenu = winMenu
+        winMenu.addItem(withTitle: L10n.minimize, action: #selector(NSWindow.performMiniaturize(_:)), keyEquivalent: "m")
+        winMenu.addItem(withTitle: L10n.close, action: #selector(NSWindow.performClose(_:)), keyEquivalent: "w")
+
+        NSApp.mainMenu = mainMenu
+        NSApp.windowsMenu = winMenu
+    }
+
+    @objc private func openSettingsFromMenu() {
+        if #available(macOS 14, *) { openMainWindow(initial: .settings) }
+    }
+
+    @objc private func languageDidChange() {
+        setupMainMenu()
+    }
+
+    private func startBackgroundServices(db: DB, sampler: Sampler) {
+        sampler.start()
+
+        let maintenance = Maintenance(db: db)
+        self.maintenance = maintenance
+        maintenance.start()
+
+        if Store.queryServerEnabled {
+            let port = UInt16(clamping: Store.queryServerPort)
+            let server = QueryServer(db: db, port: port)
+            self.queryServer = server
+            server.start()
+        }
+    }
+}
