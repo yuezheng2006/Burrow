@@ -257,6 +257,18 @@ enum L10n {
     static var scanningCaches: String { t("扫描缓存", en: "Scanning caches") }
     static var cleaningCaches: String { t("清理缓存", en: "Cleaning caches") }
 
+    // Progress messages
+    static var technicalLog: String { t("技术日志", en: "Technical Log") }
+    static var scanningInProgress: String { t("扫描进行中", en: "Scanning in Progress") }
+    static var cleaningInProgress: String { t("清理进行中", en: "Cleaning in Progress") }
+    static var scanComplete: String { t("扫描完成", en: "Scan Complete") }
+    static var cleanComplete: String { t("清理完成", en: "Clean Complete") }
+    static var operationFailed: String { t("操作失败", en: "Operation Failed") }
+    static var analyzingCaches: String { t("正在分析缓存和日志文件", en: "Analyzing caches and log files") }
+    static var removingCaches: String { t("正在移除不需要的文件", en: "Removing unnecessary files") }
+    static var reviewBeforeClean: String { t("查看预览结果，确认后开始清理", en: "Review results and confirm to proceed") }
+    static var macRefreshed: String { t("您的 Mac 已焕然一新", en: "Your Mac has been refreshed") }
+
     // MARK: - Optimize
 
     static var optimize: String { t("优化", en: "Optimize") }
@@ -268,6 +280,12 @@ enum L10n {
     static var previewComplete: String { t("预览完成 — 一切准备就绪", en: "Preview complete — ready to roll") }
     static var optimizing: String { t("优化中", en: "Optimizing") }
     static var optimizePreview: String { t("优化预览", en: "Optimize preview") }
+
+    // Progress messages
+    static var optimizingInProgress: String { t("优化进行中", en: "Optimizing in Progress") }
+    static var optimizeComplete: String { t("优化完成", en: "Optimization Complete") }
+    static var refreshingSystem: String { t("正在刷新系统组件", en: "Refreshing system components") }
+    static var systemTuned: String { t("系统已调优完毕", en: "System has been tuned") }
 
     // MARK: - Analyze
 
