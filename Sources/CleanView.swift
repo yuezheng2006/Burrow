@@ -98,6 +98,11 @@ struct CleanProgressView: View {
                 // Animated progress indicator
                 progressAnimation
 
+                // Scanning progress indicator (only when running)
+                if isRunning {
+                    scanningProgress
+                }
+
                 // Friendly message
                 VStack(spacing: 8) {
                     Text(friendlyTitle)
@@ -199,6 +204,14 @@ struct CleanProgressView: View {
     private var isRunning: Bool { runner.phase == .running }
     private var isDone: Bool { if case .done = runner.phase { return true }; return false }
 
+    private var scanningProgress: some View {
+        VStack(spacing: 8) {
+            // Animated scanning categories
+            ScanningCategoriesView(accent: Tool.clean.accent, lines: runner.lines)
+        }
+        .padding(.horizontal, 32)
+    }
+
     private var statusText: String {
         switch runner.phase {
         case .running: return mode == .dry ? L10n.scanningMac : L10n.cleaningDontQuit
@@ -232,30 +245,76 @@ struct CleaningAnimation: View {
     let accent: Color
     @State private var rotation: Double = 0
     @State private var scale: CGFloat = 1.0
+    @State private var outerRingRotation: Double = 0
+    @State private var innerPulse: CGFloat = 1.0
+    @State private var particleOpacity: Double = 0
 
     var body: some View {
         ZStack {
+            // Outer rotating ring
+            Circle()
+                .stroke(
+                    LinearGradient(
+                        colors: [accent.opacity(0.6), accent.opacity(0.1), accent.opacity(0.6)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 3
+                )
+                .frame(width: 140, height: 140)
+                .rotationEffect(.degrees(outerRingRotation))
+
+            // Middle pulsing circle
             Circle()
                 .fill(RadialGradient(
-                    colors: [accent.opacity(0.3), accent.opacity(0.05)],
+                    colors: [accent.opacity(0.4), accent.opacity(0.05)],
                     center: .center,
                     startRadius: 10,
-                    endRadius: 70
+                    endRadius: 60
                 ))
-                .frame(width: 140, height: 140)
-                .scaleEffect(scale)
+                .frame(width: 120, height: 120)
+                .scaleEffect(innerPulse)
 
+            // Scanning particles (4 dots orbiting)
+            ForEach(0..<4) { index in
+                Circle()
+                    .fill(accent)
+                    .frame(width: 8, height: 8)
+                    .offset(y: -50)
+                    .rotationEffect(.degrees(Double(index) * 90 + rotation))
+                    .opacity(particleOpacity)
+            }
+
+            // Center icon with rotation
             Image(systemName: "sparkles")
                 .font(.system(size: 48, weight: .light))
                 .foregroundStyle(accent)
                 .rotationEffect(.degrees(rotation))
+                .scaleEffect(scale)
+
+            // Inner scanning wave
+            Circle()
+                .stroke(accent.opacity(0.3), lineWidth: 2)
+                .frame(width: 60 + CGFloat(sin(rotation * .pi / 180) * 10), height: 60 + CGFloat(sin(rotation * .pi / 180) * 10))
+                .opacity(0.5 + sin(rotation * .pi / 180) * 0.5)
         }
         .onAppear {
-            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+            // Main icon rotation (slow)
+            withAnimation(.linear(duration: 4).repeatForever(autoreverses: false)) {
                 rotation = 360
             }
-            withAnimation(.easeInOut(duration: 1.5).repeatForever(autoreverses: true)) {
-                scale = 1.1
+            // Outer ring counter-rotation (fast)
+            withAnimation(.linear(duration: 3).repeatForever(autoreverses: false)) {
+                outerRingRotation = -360
+            }
+            // Pulsing effect (rhythmic)
+            withAnimation(.easeInOut(duration: 1.2).repeatForever(autoreverses: true)) {
+                scale = 1.15
+                innerPulse = 1.08
+            }
+            // Particle fade in
+            withAnimation(.easeIn(duration: 0.6)) {
+                particleOpacity = 0.8
             }
         }
     }
