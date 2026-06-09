@@ -42,7 +42,8 @@ struct CleanView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             withAnimation(.easeOut(duration: 0.3)) {
                 mode = .dry
-                runner.run(["clean", "--dry-run"], label: L10n.scanningCaches)
+                // 预览不需要授权，直接运行
+                runner.run(["clean", "--dry-run"], elevated: false, label: L10n.scanningCaches)
                 showStartAnimation = false
             }
         }

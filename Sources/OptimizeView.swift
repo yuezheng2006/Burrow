@@ -48,7 +48,8 @@ struct OptimizeView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
             withAnimation(.easeOut(duration: 0.3)) {
                 preview = true
-                runner.run(["optimize", "--dry-run"], label: L10n.optimizePreview)
+                // 预览不需要授权
+                runner.run(["optimize", "--dry-run"], elevated: false, label: L10n.optimizePreview)
                 showStartAnimation = false
             }
         }
