@@ -14,13 +14,17 @@ import SwiftUI
 struct OptimizeView: View {
     @StateObject private var runner = CommandRunner()
     @State private var preview = false
+    @State private var showStartAnimation = false
 
     var body: some View {
         if runner.phase == .idle {
             ToolHero(tool: .optimize, title: Tool.optimize.title, subtitle: Tool.optimize.tagline) {
-                PillButton(title: L10n.optimize) { preview = false; runner.run(["optimize"], elevated: true, label: L10n.optimizing) }
-                PillButton(title: L10n.preview, filled: false) { preview = true; runner.run(["optimize", "--dry-run"], label: L10n.optimizePreview) }
+                PillButton(title: L10n.optimize) { startOptimize() }
+                    .scaleEffect(showStartAnimation ? 0.95 : 1.0)
+                PillButton(title: L10n.preview, filled: false) { startPreview() }
+                    .scaleEffect(showStartAnimation ? 0.95 : 1.0)
             }
+            .transition(.opacity.combined(with: .scale(scale: 0.98)))
         } else {
             let report = parseTaskReport(runner.lines)
             VStack(spacing: 0) {
@@ -29,22 +33,30 @@ struct OptimizeView: View {
                 if isDone, !preview {
                     DoneBanner(accent: Tool.optimize.accent, title: L10n.maintenanceComplete,
                                detail: L10n.areasRefreshed(report.groups.count))
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                TaskReportView(groups: report.groups, accent: Tool.optimize.accent)
+                TaskReportView(groups: report.groups, accent: Tool.optimize.accent, isRunning: runner.phase == .running)
             }
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
     }
 
     private var statusBar: some View {
         HStack(spacing: 10) {
-            if runner.phase == .running { ProgressView().controlSize(.small).tint(Tool.optimize.accent) }
+            if runner.phase == .running {
+                ProgressView().controlSize(.small).tint(Tool.optimize.accent)
+                    .transition(.scale.combined(with: .opacity))
+            }
             Text(statusText).font(Brand.mono(12)).foregroundStyle(Brand.textSecondary)
+                .animation(.easeInOut, value: statusText)
             Spacer()
             if isDone {
-                Button { preview = false; runner.run(["optimize"], elevated: true, label: L10n.optimizing) } label: {
+                Button { startOptimize() } label: {
                     Label(L10n.runAgain, systemImage: "arrow.clockwise")
                         .font(Brand.mono(11)).foregroundStyle(Brand.textSecondary)
-                }.buttonStyle(.plain)
+                }
+                .buttonStyle(.plain)
+                .transition(.scale.combined(with: .opacity))
             }
         }
     }
@@ -57,6 +69,28 @@ struct OptimizeView: View {
         case .done:    return preview ? L10n.previewComplete : L10n.maintenanceComplete
         case .failed(let m): return L10n.failedPrefix + m
         case .idle:    return ""
+        }
+    }
+
+    private func startOptimize() {
+        withAnimation(.easeInOut(duration: 0.2)) { showStartAnimation = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                preview = false
+                runner.run(["optimize"], elevated: true, label: L10n.optimizing)
+                showStartAnimation = false
+            }
+        }
+    }
+
+    private func startPreview() {
+        withAnimation(.easeInOut(duration: 0.2)) { showStartAnimation = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                preview = true
+                runner.run(["optimize", "--dry-run"], label: L10n.optimizePreview)
+                showStartAnimation = false
+            }
         }
     }
 }

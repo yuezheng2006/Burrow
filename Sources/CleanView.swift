@@ -15,6 +15,7 @@ import AppKit
 struct CleanView: View {
     @StateObject private var runner = CommandRunner()
     @State private var mode: Mode = .dry
+    @State private var showStartAnimation = false
 
     enum Mode { case dry, real }
 
@@ -22,8 +23,11 @@ struct CleanView: View {
         if runner.phase == .idle {
             ToolHero(tool: .clean, title: Tool.clean.title, subtitle: Tool.clean.tagline) {
                 PillButton(title: L10n.cleanNow) { confirmReal() }
+                    .scaleEffect(showStartAnimation ? 0.95 : 1.0)
                 PillButton(title: L10n.preview, filled: false) { startDry() }
+                    .scaleEffect(showStartAnimation ? 0.95 : 1.0)
             }
+            .transition(.opacity.combined(with: .scale(scale: 0.98)))
         } else {
             let report = parseTaskReport(runner.lines)
             VStack(spacing: 0) {
@@ -32,11 +36,14 @@ struct CleanView: View {
                 if isDone, mode == .real {
                     DoneBanner(accent: Tool.clean.accent, title: L10n.cleaned,
                                detail: report.summary.map { L10n.freedDetail(space: $0.space, items: $0.items) })
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 } else if mode == .dry, let s = report.summary {
                     summaryBanner(s)
+                        .transition(.move(edge: .top).combined(with: .opacity))
                 }
-                TaskReportView(groups: report.groups, accent: Tool.clean.accent)
+                TaskReportView(groups: report.groups, accent: Tool.clean.accent, isRunning: isRunning)
             }
+            .transition(.opacity.combined(with: .move(edge: .bottom)))
         }
     }
 
@@ -83,7 +90,16 @@ struct CleanView: View {
         }
     }
 
-    private func startDry() { mode = .dry; runner.run(["clean", "--dry-run"], label: L10n.scanningCaches) }
+    private func startDry() {
+        withAnimation(.easeInOut(duration: 0.2)) { showStartAnimation = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                mode = .dry
+                runner.run(["clean", "--dry-run"], label: L10n.scanningCaches)
+                showStartAnimation = false
+            }
+        }
+    }
 
     private func confirmReal() {
         let alert = NSAlert()
@@ -93,7 +109,13 @@ struct CleanView: View {
         alert.addButton(withTitle: L10n.clean)
         alert.addButton(withTitle: L10n.cancel)
         guard alert.runModal() == .alertFirstButtonReturn else { return }
-        mode = .real
-        runner.run(["clean"], elevated: true, label: L10n.cleaningCaches)
+        withAnimation(.easeInOut(duration: 0.2)) { showStartAnimation = true }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) {
+            withAnimation(.easeOut(duration: 0.3)) {
+                mode = .real
+                runner.run(["clean"], elevated: true, label: L10n.cleaningCaches)
+                showStartAnimation = false
+            }
+        }
     }
 }

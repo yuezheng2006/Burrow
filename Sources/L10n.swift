@@ -217,9 +217,9 @@ enum L10n {
         fmt("· %@ 项 · %@ 类", en: "· %@ items · %@ categories", items, categories)
     }
     static var scanningMac: String { t("正在扫描 Mac…", en: "Scanning your Mac…") }
-    static var cleaningDontQuit: String { t("清理中，请勿退出。", en: "Cleaning… don't quit.") }
-    static var previewReview: String { t("预览 — 确认后再正式清理。", en: "Preview — review, then clean for real.") }
-    static var doneCachesCleared: String { t("完成 — 缓存已清除。", en: "Done — caches cleared.") }
+    static var cleaningDontQuit: String { t("清理中，让机器轻装上阵…", en: "Cleaning… lightening the load…") }
+    static var previewReview: String { t("预览完成 — 确认后即可清理", en: "Preview complete — ready when you are") }
+    static var doneCachesCleared: String { t("完成 — 您的 Mac 焕然一新", en: "Done — your Mac breathes easier now") }
     static var cleanCachesTitle: String { t("确认清理缓存？", en: "Clean caches for real?") }
     static var cleanCachesBody: String {
         t("拂尘将以管理员权限运行清理命令。缓存文件将被永久删除；安全规则仍然生效。",
@@ -234,10 +234,10 @@ enum L10n {
     static var optimize: String { t("优化", en: "Optimize") }
     static var runAgain: String { t("再次运行", en: "Run again") }
     static var maintenanceComplete: String { t("维护完成", en: "Maintenance complete") }
-    static func areasRefreshed(_ n: Int) -> String { fmt("已刷新 %d 个区域", en: "%d areas refreshed", n) }
+    static func areasRefreshed(_ n: Int) -> String { fmt("已刷新 %d 个区域", en: "Refreshed %d areas", n) }
     static var previewingMaintenance: String { t("预览维护任务…", en: "Previewing maintenance…") }
-    static var runningMaintenance: String { t("正在运行维护…", en: "Running maintenance…") }
-    static var previewComplete: String { t("预览完成。", en: "Preview complete.") }
+    static var runningMaintenance: String { t("正在维护，让系统更顺畅…", en: "Tuning up… smoothing things out…") }
+    static var previewComplete: String { t("预览完成 — 一切准备就绪", en: "Preview complete — ready to roll") }
     static var optimizing: String { t("优化中", en: "Optimizing") }
     static var optimizePreview: String { t("优化预览", en: "Optimize preview") }
 

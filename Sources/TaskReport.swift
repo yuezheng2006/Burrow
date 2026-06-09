@@ -230,12 +230,13 @@ final class CommandRunner: ObservableObject {
 struct TaskReportView: View {
     let groups: [TaskGroup]
     let accent: Color
+    var isRunning: Bool = false
 
     var body: some View {
         ScrollViewReader { proxy in
             ScrollView {
                 LazyVStack(spacing: 10) {
-                    ForEach(Array(groups.enumerated()), id: \.offset) { _, group in
+                    ForEach(Array(groups.enumerated()), id: \.offset) { index, group in
                         GlassCard {
                             VStack(alignment: .leading, spacing: 7) {
                                 Text(group.title.uppercased())
@@ -244,15 +245,19 @@ struct TaskReportView: View {
                                 ForEach(Array(group.items.enumerated()), id: \.offset) { _, item in
                                     HStack(alignment: .firstTextBaseline, spacing: 8) {
                                         marker(item.marker)
+                                            .transition(.scale.combined(with: .opacity))
                                         Text(item.text)
                                             .font(Brand.sans(12))
                                             .foregroundStyle(textColor(item.marker))
                                             .fixedSize(horizontal: false, vertical: true)
                                         Spacer(minLength: 0)
                                     }
+                                    .transition(.move(edge: .leading).combined(with: .opacity))
                                 }
                             }
                         }
+                        .transition(.move(edge: .top).combined(with: .opacity))
+                        .animation(.easeOut(duration: 0.25).delay(Double(index) * 0.05), value: groups.count)
                     }
                     Color.clear.frame(height: 1).id("BOTTOM")
                 }
@@ -291,6 +296,8 @@ struct TaskReportView: View {
 struct HeroOrb: View {
     let accent: Color
     var size: CGFloat = 150
+    @State private var pulseScale: CGFloat = 1.0
+
     var body: some View {
         ZStack {
             Circle().fill(RadialGradient(
@@ -299,7 +306,13 @@ struct HeroOrb: View {
             Circle().strokeBorder(Color.white.opacity(0.10), lineWidth: 1)
         }
         .frame(width: size, height: size)
+        .scaleEffect(pulseScale)
         .shadow(color: accent.opacity(0.35), radius: 40)
+        .onAppear {
+            withAnimation(.easeInOut(duration: 2.0).repeatForever(autoreverses: true)) {
+                pulseScale = 1.05
+            }
+        }
     }
 }
 
@@ -345,23 +358,38 @@ struct DoneBanner: View {
     let accent: Color
     let title: String
     var detail: String? = nil
+    @State private var checkmarkScale: CGFloat = 0.5
+    @State private var checkmarkRotation: Double = -30
 
     var body: some View {
-        HStack(spacing: 12) {
+        HStack(spacing: 16) {
             ZStack {
-                Circle().fill(accent.opacity(0.18)).frame(width: 38, height: 38)
-                Image(systemName: "checkmark").font(.system(size: 16, weight: .bold)).foregroundStyle(accent)
+                Circle().fill(accent.opacity(0.18)).frame(width: 52, height: 52)
+                Circle().strokeBorder(accent.opacity(0.3), lineWidth: 2).frame(width: 52, height: 52)
+                Image(systemName: "checkmark")
+                    .font(.system(size: 22, weight: .bold))
+                    .foregroundStyle(accent)
+                    .scaleEffect(checkmarkScale)
+                    .rotationEffect(.degrees(checkmarkRotation))
             }
-            VStack(alignment: .leading, spacing: 2) {
-                Text(title).font(Brand.sans(15, .semibold)).foregroundStyle(Brand.textPrimary)
-                if let d = detail { Text(d).font(Brand.mono(11)).foregroundStyle(Brand.textSecondary) }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(Brand.sans(16, .semibold)).foregroundStyle(Brand.textPrimary)
+                if let d = detail {
+                    Text(d).font(Brand.mono(11)).foregroundStyle(Brand.textSecondary)
+                }
             }
             Spacer()
         }
-        .padding(14)
+        .padding(16)
         .frame(maxWidth: .infinity, alignment: .leading)
-        .background(RoundedRectangle(cornerRadius: 14).fill(accent.opacity(0.10)))
-        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(accent.opacity(0.35), lineWidth: 1))
-        .padding(.horizontal, 18).padding(.top, 8)
+        .background(RoundedRectangle(cornerRadius: 16).fill(accent.opacity(0.12)))
+        .overlay(RoundedRectangle(cornerRadius: 16).strokeBorder(accent.opacity(0.4), lineWidth: 1.5))
+        .padding(.horizontal, 18).padding(.top, 10).padding(.bottom, 4)
+        .onAppear {
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.6)) {
+                checkmarkScale = 1.0
+                checkmarkRotation = 0
+            }
+        }
     }
 }
