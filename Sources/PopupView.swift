@@ -136,7 +136,7 @@ struct PopupView: View {
 
     private func specLine(_ s: MoleStatus) -> String {
         let cpu = s.hardware.cpuModel.replacingOccurrences(of: "Apple ", with: "")
-        return "\(cpu) · \(s.hardware.totalRam) · up \(Fmt.uptime(s.uptimeSeconds))"
+        return L10n.specsLine(cpu, s.hardware.totalRam, Fmt.uptime(s.uptimeSeconds))
     }
 
     // MARK: Metric grid
@@ -146,29 +146,29 @@ struct PopupView: View {
             HUDTile(eyebrow: L10n.cpu, glyph: "cpu", accent: Brand.green,
                     value: String(format: "%.0f", s.cpu.usage), unit: "%",
                     values: model.cpuHist, style: .bars,
-                    foot: String(format: "load %.2f", s.cpu.load1))
+                    foot: L10n.cpuLoadFoot(s.cpu.load1))
             HUDTile(eyebrow: L10n.memory, glyph: "memorychip", accent: Brand.amber,
                     value: String(format: "%.0f", s.memory.usedPercent), unit: "%",
                     values: model.memHist, style: .area,
-                    foot: String(format: "%.1f/%.0f GB", Double(s.memory.used) / 1_073_741_824, Double(s.memory.total) / 1_073_741_824))
+                    foot: L10n.memoryFoot(Double(s.memory.used) / 1_073_741_824, Double(s.memory.total) / 1_073_741_824))
             HUDTile(eyebrow: L10n.network, glyph: "network", accent: Brand.green,
                     value: netValue(s).0, unit: netValue(s).1,
                     values: model.netHist, style: .area,
                     foot: netFoot(s))
-            HUDTile(eyebrow: "GPU", glyph: "cpu.fill", accent: Brand.orange,
+            HUDTile(eyebrow: L10n.gpuLabel, glyph: "cpu.fill", accent: Brand.orange,
                     value: gpuValue(s).0, unit: gpuValue(s).1,
                     values: model.gpuHist, style: .area,
-                    foot: (s.gpu?.first?.name ?? "GPU").replacingOccurrences(of: "Apple ", with: ""))
+                    foot: (s.gpu?.first?.name ?? L10n.gpuLabel).replacingOccurrences(of: "Apple ", with: ""))
         }
     }
 
     private func netValue(_ s: MoleStatus) -> (String, String) {
         let total = s.network.reduce(0.0) { $0 + $1.rxRateMbs + $1.txRateMbs }
-        return total < 1 ? (String(format: "%.0f", total * 1024), "KB/s") : (String(format: "%.1f", total), "MB/s")
+        return total < 1 ? (String(format: "%.0f", total * 1024), L10n.kbPerSecond) : (String(format: "%.1f", total), L10n.mbPerSecond)
     }
     private func netFoot(_ s: MoleStatus) -> String {
         let n = s.network.first(where: { !$0.ip.isEmpty }) ?? s.network.first
-        return n.map { "↓ \(Int($0.rxRateMbs * 1024)) ↑ \(Int($0.txRateMbs * 1024)) KB/s" } ?? "—"
+        return n.map { L10n.netFoot(Int($0.rxRateMbs * 1024), Int($0.txRateMbs * 1024)) } ?? "—"
     }
     private func gpuValue(_ s: MoleStatus) -> (String, String) {
         let u = s.gpu?.first?.usage ?? -1
@@ -220,7 +220,7 @@ struct PopupView: View {
                     .font(Brand.sans(11, .semibold)).foregroundStyle(Brand.textPrimary)
                 iconButton("power") { NSApp.terminate(nil) }
             }
-            Text("MCP 127.0.0.1:\(Store.queryServerPort)")
+            Text("\(L10n.mcpEndpoint) 127.0.0.1:\(Store.queryServerPort)")
                 .font(Brand.mono(9)).foregroundStyle(Brand.textTertiary)
                 .frame(maxWidth: .infinity, alignment: .leading)
         }

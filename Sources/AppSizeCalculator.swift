@@ -9,7 +9,7 @@
 import Foundation
 
 enum AppSizeCalculator {
-    private static let perAppTimeout: TimeInterval = 8
+    private static let perAppTimeout: TimeInterval = 2  // 进一步减少超时到 2 秒
 
     static func allocatedBytes(at path: String, timeout: TimeInterval = perAppTimeout) -> Int64 {
         var bytes: Int64 = 0
@@ -66,7 +66,7 @@ enum AppSizeCalculator {
     /// caller's queue once per app (may be out of order).
     static func sizeApps(
         _ apps: [InstalledApp],
-        maxConcurrent: Int = 4,
+        maxConcurrent: Int = 12,  // 进一步增加并发到 12
         onSized: @escaping (InstalledApp) -> Void
     ) {
         let lock = NSLock()

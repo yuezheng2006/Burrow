@@ -21,8 +21,24 @@ if ! command -v mo >/dev/null 2>&1 \
 fi
 
 echo "==> installing ${APP_SRC} → ${DEST}"
-sudo rm -rf "$DEST" 2>/dev/null || rm -rf "$DEST"
+
+# 先关闭正在运行的应用
+if pgrep -x "Fuchen" >/dev/null 2>&1; then
+  echo "  -> quitting running Fuchen instance..."
+  pkill -9 "Fuchen" 2>/dev/null || true
+  sleep 1
+fi
+
+# 删除旧应用
+if [[ -d "$DEST" ]]; then
+  echo "  -> removing old ${DEST}"
+  sudo rm -rf "$DEST" 2>/dev/null || rm -rf "$DEST"
+fi
+
+# 复制新应用
 cp -R "$APP_SRC" "$DEST"
+
+# 清除隔离属性和签名
 xattr -cr "$DEST"
 codesign --force --deep --sign - "$DEST"
 

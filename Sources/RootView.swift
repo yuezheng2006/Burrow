@@ -55,6 +55,7 @@ struct RootView: View {
         .environment(\.colorScheme, .dark)
         .preferredColorScheme(.dark)
         .animation(.easeInOut(duration: 0.22), value: pane)
+        .id(languageStore.current.rawValue) // Force refresh when language changes
         .onAppear { mount(pane) }
         .onChange(of: pane) { _, next in mount(next) }
         .onReceive(NotificationCenter.default.publisher(for: .fuchenNavigate)) { note in

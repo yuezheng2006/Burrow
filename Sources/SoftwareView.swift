@@ -296,7 +296,7 @@ final class SoftwareModel: ObservableObject {
         let snapshot = apps
 
         DispatchQueue.global(qos: .utility).async { [weak self] in
-            AppSizeCalculator.sizeApps(snapshot, maxConcurrent: 4) { sized in
+            AppSizeCalculator.sizeApps(snapshot, maxConcurrent: 12) { sized in
                 DispatchQueue.main.async {
                     guard let self, self.refreshToken == token else { return }
                     if sized.sizeBytes > 0 { sizedCount += 1 }
@@ -335,40 +335,120 @@ final class SoftwareModel: ObservableObject {
             uniqueKeysWithValues: AppListCache.loadApps().map { ($0.path, $0) }
         )
 
+        // 1. 快速本地扫描（同步，不卡顿）
         let scanned = AppScanner.scan()
-        loading = false
-        statusHint = ""
 
         guard !scanned.isEmpty else {
             apps = []
+            loading = false
+            statusHint = ""
             error = L10n.noAppsFound
             return
         }
 
+        // 2. 先用缓存数据快速显示（避免卡顿）
         apps = scanned.map { app in
-            guard let cached = cachedByPath[app.path], cached.sizeBytes > 0 else { return app }
-            return InstalledApp(
-                id: app.id,
-                name: app.name,
-                bundleId: app.bundleId,
-                source: cached.source.isEmpty ? app.source : cached.source,
-                uninstallName: cached.uninstallName.isEmpty ? app.uninstallName : cached.uninstallName,
-                path: app.path,
-                sizeStr: cached.sizeStr,
-                sizeBytes: cached.sizeBytes,
-                lastUsed: app.lastUsed)
+            if let cached = cachedByPath[app.path], cached.sizeBytes > 0 {
+                return InstalledApp(
+                    id: app.id,
+                    name: app.name,
+                    bundleId: app.bundleId,
+                    source: cached.source.isEmpty ? app.source : cached.source,
+                    uninstallName: cached.uninstallName.isEmpty ? app.uninstallName : cached.uninstallName,
+                    path: app.path,
+                    sizeStr: cached.sizeStr,
+                    sizeBytes: cached.sizeBytes,
+                    lastUsed: app.lastUsed)
+            } else {
+                return app
+            }
         }
-        AppListCache.save(apps: apps)
-        refreshSizesIfNeeded()
+        loading = false
+
+        // 3. 后台获取 mole 数据并更新
+        DispatchQueue.global(qos: .userInitiated).async { [weak self] in
+            let moleApps = self?.fetchMoleApps() ?? []
+            let moleByPath = Dictionary(uniqueKeysWithValues: moleApps.map { ($0.path, $0) })
+
+            DispatchQueue.main.async { [weak self] in
+                guard let self else { return }
+                // 合并 mole 数据
+                self.apps = self.apps.map { app in
+                    if let mole = moleByPath[app.path], mole.sizeBytes > 0 {
+                        return InstalledApp(
+                            id: app.id,
+                            name: app.name,
+                            bundleId: app.bundleId,
+                            source: mole.source.isEmpty ? app.source : mole.source,
+                            uninstallName: mole.uninstallName.isEmpty ? app.uninstallName : mole.uninstallName,
+                            path: app.path,
+                            sizeStr: mole.sizeStr,
+                            sizeBytes: mole.sizeBytes,
+                            lastUsed: app.lastUsed)
+                    } else {
+                        return app
+                    }
+                }
+                AppListCache.save(apps: self.apps)
+                // 只对仍无大小的应用触发 du
+                self.refreshSizesIfNeeded()
+            }
+        }
+    }
+
+    /// 从 mole 获取应用列表（包含大小信息）
+    private func fetchMoleApps() -> [InstalledApp] {
+        do {
+            let result = try MoleCLI.run(args: ["uninstall", "--list"], timeout: 30)
+            guard result.exitCode == 0 else { return [] }
+            guard let data = result.stdout.data(using: .utf8) else { return [] }
+            let arr = try JSONSerialization.jsonObject(with: data) as? [[String: Any]]
+            return AppListParser.parseMoleRows(arr ?? [])
+        } catch {
+            NSLog("SoftwareModel: failed to fetch mole apps: \(error.localizedDescription)")
+            return []
+        }
     }
 
     /// Fill cached sizes instantly; otherwise kick off a background refresh
     /// so the user doesn't have to click ↻ after every visit.
+    /// Only sizes apps that don't have size data yet.
     private func refreshSizesIfNeeded() {
-        guard needsSizeRefresh, !refreshing else { return }
+        let needsSizing = apps.filter { $0.sizeBytes == 0 }
+        guard !needsSizing.isEmpty, !refreshing else { return }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) { [weak self] in
-            guard let self, self.needsSizeRefresh, !self.refreshing else { return }
-            self.refreshSizes()
+            guard let self, !self.refreshing else { return }
+            let stillNeeding = self.apps.filter { $0.sizeBytes == 0 }
+            guard !stillNeeding.isEmpty else { return }
+            self.refreshSizesPartial(stillNeeding)
+        }
+    }
+
+    /// Size only the apps that don't have size data yet.
+    private func refreshSizesPartial(_ needsSizing: [InstalledApp]) {
+        guard !needsSizing.isEmpty else { return }
+        let token = UUID()
+        refreshToken = token
+        refreshing = true
+        let total = needsSizing.count
+        var done = 0
+
+        DispatchQueue.global(qos: .utility).async { [weak self] in
+            AppSizeCalculator.sizeApps(needsSizing, maxConcurrent: 4) { sized in
+                DispatchQueue.main.async {
+                    guard let self, self.refreshToken == token else { return }
+                    if let idx = self.apps.firstIndex(where: { $0.path == sized.path }) {
+                        self.apps[idx] = sized
+                    }
+                    done += 1
+                    self.statusHint = L10n.sizeRefreshProgress(done, total)
+                    if done >= total {
+                        self.refreshing = false
+                        self.statusHint = ""
+                        AppListCache.save(apps: self.apps)
+                    }
+                }
+            }
         }
     }
 

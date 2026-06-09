@@ -219,7 +219,7 @@ struct ToolCatalog {
         return [
             [
                 "name": "fuchen_snapshot",
-                "description": "Most recent Mole status snapshot (CPU, memory, disk, network, thermal, top processes, system health). Returns the full JSON Mole produced.",
+                "description": "Most recent system snapshot (CPU, memory, disk, network, thermal, top processes, system health). Returns the full status data.",
                 "inputSchema": [
                     "type": "object",
                     "properties": [String: Any](),
@@ -228,7 +228,7 @@ struct ToolCatalog {
             ],
             [
                 "name": "fuchen_history",
-                "description": "Time-series slice of Mole snapshots. `minutes` selects how far back to look (default 60). `samples` caps the number of returned points via stride sampling (default 60, max 720).",
+                "description": "Time-series slice of system snapshots. `minutes` selects how far back to look (default 60). `samples` caps the number of returned points via stride sampling (default 60, max 720).",
                 "inputSchema": [
                     "type": "object",
                     "properties": [
@@ -240,7 +240,7 @@ struct ToolCatalog {
             ],
             [
                 "name": "fuchen_top_processes",
-                "description": "Top processes (by peak CPU%) across the last `minutes` window (default 60). Aggregates Mole's per-tick top_processes lists.",
+                "description": "Top processes (by peak CPU%) across the last `minutes` window (default 60). Aggregates per-tick top process lists.",
                 "inputSchema": [
                     "type": "object",
                     "properties": [

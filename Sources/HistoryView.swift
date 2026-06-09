@@ -196,17 +196,17 @@ struct HistoryView: View {
                 Rectangle().fill(Brand.hairline).frame(height: 1)
                 ScrollView {
                     LazyVGrid(columns: [GridItem(.flexible(), spacing: 13), GridItem(.flexible(), spacing: 13)], spacing: 13) {
-                        chartCard(L10n.cpu + " usage", "%", [("usage", snapshot.cpuUsage, Brand.green)])
-                        chartCard(L10n.cpuLoad, "1m avg", [("load1", snapshot.cpuLoad1, Brand.orange)])
+                        chartCard(L10n.cpuUsage, "%", [("usage", snapshot.cpuUsage, Brand.green)])
+                        chartCard(L10n.cpuLoad, L10n.oneMinAvg, [("load1", snapshot.cpuLoad1, Brand.orange)])
                         chartCard(L10n.memory, snapshot.memoryPressure.isEmpty ? L10n.percentUsed : snapshot.memoryPressure,
                                   [("used", snapshot.memoryUsed, Brand.amber)])
-                        chartCard(L10n.diskIO, "MB/s", [("read", snapshot.diskRead, Brand.blue),
+                        chartCard(L10n.diskIO, L10n.mbPerSecondShort, [("read", snapshot.diskRead, Brand.blue),
                                                        ("write", snapshot.diskWrite, Color(hex: 0x6E8BEA))])
-                        chartCard(L10n.network, "MB/s", [("rx", snapshot.netRx, Brand.green),
+                        chartCard(L10n.network, L10n.mbPerSecondShort, [("rx", snapshot.netRx, Brand.green),
                                                       ("tx", snapshot.netTx, Color(hex: 0x57C2A5))])
                         chartCard(L10n.thermal, "°C", [("cpu", snapshot.thermalCPU, Brand.red),
                                                     ("gpu", snapshot.thermalGPU, Brand.orange)])
-                        chartCard(L10n.healthScore, "0–100", [("health", snapshot.healthScore, Brand.gold)])
+                        chartCard(L10n.healthScore, L10n.zeroToHundred, [("health", snapshot.healthScore, Brand.gold)])
                         topProcessesCard
                     }
                     .padding(16)
@@ -323,9 +323,9 @@ struct HistoryView: View {
                                 HStack {
                                     Text(row.name).font(Brand.sans(11)).foregroundStyle(Brand.textPrimary).lineLimit(1)
                                     Spacer(minLength: 8)
-                                    Text(String(format: "%.1f%%", row.peakCPU)).font(Brand.mono(10))
+                                    Text(L10n.peakCpuFormat(row.peakCPU)).font(Brand.mono(10))
                                         .foregroundStyle(Brand.green).frame(width: 52, alignment: .trailing)
-                                    Text(String(format: "%.1f%%", row.peakMem)).font(Brand.mono(10))
+                                    Text(L10n.peakMemFormat(row.peakMem)).font(Brand.mono(10))
                                         .foregroundStyle(Brand.amber).frame(width: 52, alignment: .trailing)
                                 }
                             }

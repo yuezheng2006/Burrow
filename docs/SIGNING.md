@@ -39,4 +39,10 @@ export APPLE_TEAM_ID="XXXXXXXXXX"
 
 ## 当前限制
 
+Release 默认为 **Universal Binary**（Apple Silicon + Intel）。本地快速迭代可只编 arm64：
+
+```bash
+FUCHEN_ARCHS=arm64 ./scripts/release-swiftc.sh
+```
+
 Agent/CI 环境若无上述证书，只能发布**带图标但未公证**的构建；用户仍需右键打开或 `xattr -cr`。

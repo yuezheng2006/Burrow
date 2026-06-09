@@ -54,11 +54,11 @@ enum DiskScanError: Error, LocalizedError {
     var errorDescription: String? {
         switch self {
         case .moNotFound:
-            return "Mole CLI (`mo`) not found on PATH."
+            return L10n.moleNotFoundTitle
         case .moFailed(let code, let stderr):
-            return "mo analyze exited \(code): \(stderr.prefix(200))"
+            return "Analyze command exited \(code): \(stderr.prefix(200))"
         case .parseFailed(let m):
-            return "Couldn't parse mo analyze output: \(m)"
+            return "Couldn't parse analyze output: \(m)"
         }
     }
 }
@@ -68,14 +68,14 @@ enum DiskScanner {
     /// callers must run on a background queue. Returns aggregated sizes
     /// for each direct child; drill in by calling again with the child's
     /// path.
-    static func scan(_ path: String) throws -> DiskScanResult {
+    static func scan(_ path: String, timeout: TimeInterval = 60) throws -> DiskScanResult {
         guard MoleCLI.findExecutable() != nil else {
             throw DiskScanError.moNotFound
         }
-        // 5-minute timeout — `mo analyze` on the home dir is usually a
-        // few seconds, but a cold cache + large external volume + no
-        // indexing can stretch it. Beyond 5 min something's wrong.
-        let result = try MoleCLI.run(args: ["analyze", "--json", path], timeout: 300)
+        // Default 60-second timeout — `mo analyze` on the home dir is usually a
+        // few seconds with warm cache. Cold cache + large external drive may take longer.
+        // Callers can override timeout for known-slow paths.
+        let result = try MoleCLI.run(args: ["analyze", "--json", path], timeout: timeout)
         guard result.exitCode == 0 else {
             throw DiskScanError.moFailed(exitCode: result.exitCode, stderr: result.stderr)
         }

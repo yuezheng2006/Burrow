@@ -12,11 +12,12 @@ command -v xcodegen >/dev/null 2>&1 || { echo "need xcodegen — brew install xc
 echo "==> xcodegen generate"
 xcodegen generate >/dev/null
 
-echo "==> building Release (unsigned)"
+echo "==> building Release (unsigned, universal arm64+x86_64)"
 rm -rf build_dist
 xcodebuild -project Fuchen.xcodeproj -scheme Fuchen \
   -configuration Release -destination 'generic/platform=macOS' \
   -derivedDataPath build_dist \
+  ARCHS="arm64 x86_64" ONLY_ACTIVE_ARCH=NO \
   CODE_SIGN_IDENTITY="" CODE_SIGNING_REQUIRED=NO CODE_SIGNING_ALLOWED=NO \
   build >/dev/null
 

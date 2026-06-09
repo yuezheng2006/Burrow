@@ -81,21 +81,31 @@ struct StatusView: View {
             eyebrow: L10n.cpu, glyph: "cpu", accent: Brand.green,
             value: String(format: "%.1f", s.cpu.usage), unit: "%",
             chip: chip, values: model.cpuHist, chartStyle: .bars,
-            footnote: String(format: "load %.2f · %.2f · %.2f", s.cpu.load1, s.cpu.load5, s.cpu.load15))
+            footnote: L10n.cpuLoadFormat(s.cpu.load1, s.cpu.load5, s.cpu.load15))
     }
 
     private func memTile(_ s: MoleStatus) -> MetricTile {
         let m = s.memory
-        let label = m.pressure.isEmpty ? "normal" : m.pressure.lowercased()
-        let color: Color = label == "normal" ? Brand.textSecondary : (label == "warning" ? Brand.orange : Brand.red)
+        let rawLabel = m.pressure.isEmpty ? L10n.memoryNormal : m.pressure.lowercased()
+        let label: String
+        let color: Color
+        if rawLabel == L10n.memoryNormal || rawLabel == "normal" {
+            label = L10n.memoryNormal
+            color = Brand.textSecondary
+        } else if rawLabel == L10n.memoryWarning || rawLabel == "warning" {
+            label = L10n.memoryWarning
+            color = Brand.orange
+        } else {
+            label = L10n.memoryCritical
+            color = Brand.red
+        }
         let used = Double(m.used) / 1_073_741_824
         let total = Double(m.total) / 1_073_741_824
         return MetricTile(
             eyebrow: L10n.memory, glyph: "memorychip", accent: Brand.amber,
             value: String(format: "%.0f", m.usedPercent), unit: "%",
             chip: (label, color), values: model.memHist, chartStyle: .area,
-            footnote: String(format: "%.1f / %.1f GB · swap %.1f GB",
-                             used, total, Double(m.swapUsed) / 1_073_741_824))
+            footnote: L10n.memoryFormat(used, total, Double(m.swapUsed) / 1_073_741_824))
     }
 
     private func gpuTile(_ s: MoleStatus) -> MetricTile {
@@ -108,7 +118,7 @@ struct StatusView: View {
             value: hasUsage ? String(format: "%.0f", g!.usage) : "—",
             unit: hasUsage ? "%" : "",
             chip: nil, values: model.gpuHist, chartStyle: .area,
-            footnote: cores > 0 ? "\(name) · \(cores) cores" : name)
+            footnote: cores > 0 ? "\(name) · \(cores) \(L10n.gpuCores)" : name)
     }
 
     private func netTile(_ s: MoleStatus) -> MetricTile {
@@ -118,19 +128,19 @@ struct StatusView: View {
         let total = rx + tx
         let value: String
         let unit: String
-        if total < 1 { value = String(format: "%.0f", total * 1024); unit = "KB/s" }
-        else { value = String(format: "%.2f", total); unit = "MB/s" }
+        if total < 1 { value = String(format: "%.0f", total * 1024); unit = L10n.kbPerSecond }
+        else { value = String(format: "%.2f", total); unit = L10n.mbPerSecond }
         var chip: (String, Color)? = nil
         if let p = s.proxy, p.enabled, !p.type.isEmpty { chip = (p.type, Brand.blue) }
         return MetricTile(
             eyebrow: L10n.network, glyph: "network", accent: Brand.green,
             value: value, unit: unit, chip: chip,
             values: model.netHist, chartStyle: .area,
-            footnote: "↓ \(rate(rx))  ↑ \(rate(tx)) · \(net?.name ?? "—") · \(net?.ip ?? "—")")
+            footnote: L10n.rateFormat(rx, tx, net?.name ?? "—", net?.ip ?? "—"))
     }
 
     private func rate(_ mbs: Double) -> String {
-        mbs < 1 ? "\(Int(mbs * 1024)) KB/s" : String(format: "%.1f MB/s", mbs)
+        L10n.rateValue(mbs)
     }
 }
 
@@ -207,18 +217,20 @@ struct HealthCard: View {
 
     private var specLine: String {
         let cpu = s.hardware.cpuModel.replacingOccurrences(of: "Apple ", with: "")
-        return "\(cpu) · \(s.hardware.totalRam)"
+        return L10n.specsFormat(cpu, s.hardware.totalRam)
     }
-    private var rating: String { HealthRating.label(s.healthScore) }
+    private var rating: String { L10n.translateMoleString(HealthRating.label(s.healthScore)) }
     private var ratingColor: Color { HealthRating.color(s.healthScore) }
     private var message: String {
         let m = s.healthScoreMsg
-        if let r = m.range(of: ": ") { return String(m[r.upperBound...]) }
-        return m.isEmpty ? L10n.allChecksPassed : m
+        if let r = m.range(of: ": ") {
+            return L10n.translateMoleString(String(m[r.upperBound...]))
+        }
+        return m.isEmpty ? L10n.allChecksPassed : L10n.translateMoleString(m)
     }
     private var uptimeLine: String {
         let boot = Date().addingTimeInterval(-Double(s.uptimeSeconds))
-        return "up \(Fmt.uptime(s.uptimeSeconds)) · since \(Fmt.day(boot))"
+        return "\(L10n.uptimePrefix) \(Fmt.uptime(s.uptimeSeconds)) · \(L10n.uptimeSince) \(Fmt.day(boot))"
     }
 }
 
@@ -264,8 +276,7 @@ struct DiskCard: View {
                 }
                 ProgressBar(fraction: pct / 100, color: barColor)
                 Spacer(minLength: 2)
-                Text(String(format: "%.0f%% used · R %.0f · W %.0f MB/s",
-                            pct, s.diskIO.readRate, s.diskIO.writeRate))
+                Text(L10n.diskFormat(pct, s.diskIO.readRate, s.diskIO.writeRate))
                     .font(Brand.mono(10)).foregroundStyle(Brand.textTertiary).lineLimit(1)
             }
         }
@@ -285,16 +296,16 @@ struct BatteryCard: View {
                     HStack {
                         Eyebrow(text: L10n.battery, glyph: "battery.100", color: color(b))
                         Spacer()
-                        Chip(text: b.health, color: b.health == "Good" ? Brand.green : Brand.gold)
+                        Chip(text: L10n.translateMoleString(b.health), color: b.health == "Good" || b.health == L10n.batteryGood ? Brand.green : Brand.gold)
                     }
                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                         Text(String(format: "%.0f", b.percent)).font(Brand.mono(26, .semibold)).foregroundStyle(Brand.textPrimary)
                         Text("%").font(Brand.mono(12)).foregroundStyle(Brand.textSecondary)
-                        Text(b.status).font(Brand.sans(11)).foregroundStyle(Brand.textTertiary).padding(.leading, 4)
+                        Text(L10n.translateMoleString(b.status)).font(Brand.sans(11)).foregroundStyle(Brand.textTertiary).padding(.leading, 4)
                     }
                     ProgressBar(fraction: b.percent / 100, color: color(b))
                     Spacer(minLength: 2)
-                    Text("\(b.timeLeft) left · \(b.cycleCount) cyc · \(b.capacity)% cap")
+                    Text("\(b.timeLeft) \(L10n.batteryTimeLeft) · \(b.cycleCount) \(L10n.batteryCycles) · \(b.capacity)% \(L10n.batteryCapacity)")
                         .font(Brand.mono(10)).foregroundStyle(Brand.textTertiary).lineLimit(1)
                 }
             } else {
@@ -310,7 +321,7 @@ struct BatteryCard: View {
 
     private func color(_ b: BatteryStatus) -> Color {
         if b.percent <= 20 { return Brand.red }
-        return b.status == "charging" ? Brand.green : Brand.gold
+        return b.status == "charging" || b.status == L10n.batteryCharging ? Brand.green : Brand.gold
     }
 }
 
@@ -355,9 +366,9 @@ struct ProcessCard: View {
         HStack(spacing: 10) {
             sortButton(L10n.nameHeader(count: count), .name)
             Spacer(minLength: 8)
-            sortButton("PID", .pid).frame(width: 54, alignment: .trailing)
+            sortButton(L10n.pidHeader, .pid).frame(width: 54, alignment: .trailing)
             sortButton(L10n.cpu, .cpu).frame(width: 92, alignment: .trailing)
-            sortButton("MEM", .mem).frame(width: 54, alignment: .trailing)
+            sortButton(L10n.memHeader, .mem).frame(width: 54, alignment: .trailing)
         }
         .padding(.horizontal, 14)
         .padding(.vertical, 9)

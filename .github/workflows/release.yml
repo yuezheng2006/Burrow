@@ -36,6 +36,7 @@ jobs:
         run: |
           chmod +x scripts/*.sh
           ./scripts/release-swiftc.sh
+          lipo -info build/Fuchen.app/Contents/MacOS/Fuchen
 
       - name: Upload to GitHub Release
         env:

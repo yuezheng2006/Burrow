@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 # Build Fuchen.app with swiftc. Signs + notarizes when CODESIGN_IDENTITY is set.
+#
+# By default produces a universal binary (arm64 + x86_64). Override with:
+#   FUCHEN_ARCHS=arm64 ./scripts/release-swiftc.sh   # Apple Silicon only (faster local dev)
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -11,13 +14,52 @@ ICNS=build/AppIcon.icns
 ZIP="dist/Fuchen-${VERSION}.zip"
 DMG="dist/Fuchen-${VERSION}.dmg"
 STAGE=build/dmg-staging
+FUCHEN_ARCHS="${FUCHEN_ARCHS:-arm64 x86_64}"
 
-echo "==> compiling Fuchen ${VERSION}"
+SWIFT_SOURCES=()
+while IFS= read -r f; do
+  SWIFT_SOURCES+=("$f")
+done < <(find Sources -name '*.swift' | sort)
+SWIFT_FLAGS=(
+  -sdk "$SDK"
+  -O
+  -whole-module-optimization
+  "${SWIFT_SOURCES[@]}"
+  -framework AppKit
+  -framework SwiftUI
+  -framework Charts
+  -framework CoreServices
+  -framework Network
+  -framework CoreGraphics
+  -lsqlite3
+)
+
+target_for_arch() {
+  case "$1" in
+    arm64)  echo "arm64-apple-macos14.0" ;;
+    x86_64) echo "x86_64-apple-macos14.0" ;;
+    *) echo "unsupported arch: $1 (use arm64 and/or x86_64)" >&2; exit 1 ;;
+  esac
+}
+
+echo "==> compiling Fuchen ${VERSION} (${FUCHEN_ARCHS})"
 mkdir -p build/manual
-swiftc -sdk "$SDK" -target arm64-apple-macos14.0 -O -whole-module-optimization \
-  $(find Sources -name '*.swift') -o "$BIN" \
-  -framework AppKit -framework SwiftUI -framework Charts \
-  -framework CoreServices -framework Network -framework CoreGraphics -lsqlite3
+read -ra ARCH_LIST <<< "$FUCHEN_ARCHS"
+ARCH_BINS=()
+for arch in "${ARCH_LIST[@]}"; do
+  arch_bin="build/manual/Fuchen-${arch}"
+  echo "    ${arch} → ${arch_bin}"
+  swiftc "${SWIFT_FLAGS[@]}" -target "$(target_for_arch "$arch")" -o "$arch_bin"
+  ARCH_BINS+=("$arch_bin")
+done
+
+if [[ ${#ARCH_BINS[@]} -eq 1 ]]; then
+  cp "${ARCH_BINS[0]}" "$BIN"
+else
+  echo "==> lipo universal binary → ${BIN}"
+  lipo -create "${ARCH_BINS[@]}" -output "$BIN"
+fi
+lipo -info "$BIN"
 
 echo "==> building AppIcon.icns"
 chmod +x scripts/build-icon.sh
@@ -64,7 +106,8 @@ fi
 ZIP_SHA=$(shasum -a 256 "$ZIP" | awk '{print $1}')
 DMG_SHA=$(shasum -a 256 "$DMG" | awk '{print $1}')
 echo
-echo "Built Fuchen ${VERSION}"
+echo "Built Fuchen ${VERSION} (universal: ${FUCHEN_ARCHS})"
+echo "  binary   : $(lipo -info "$BIN" | sed 's/^.*: //')"
 echo "  zip      : ${ZIP}"
 echo "  zip sha  : ${ZIP_SHA}"
 echo "  dmg      : ${DMG}"
