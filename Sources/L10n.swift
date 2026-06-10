@@ -259,6 +259,11 @@ enum L10n {
 
     // Progress messages
     static var technicalLog: String { t("技术日志", en: "Technical Log") }
+    static var readyToClean: String { t("准备开始清理", en: "Ready to Clean") }
+    static func selectedItems(_ selected: Int, _ total: Int) -> String {
+        fmt("已选 %d/%d", en: "Selected %d/%d", selected, total)
+    }
+    static var permanentClean: String { t("永久清理", en: "Permanent Clean") }
     static var scanningInProgress: String { t("扫描进行中", en: "Scanning in Progress") }
     static var cleaningInProgress: String { t("清理进行中", en: "Cleaning in Progress") }
     static var scanComplete: String { t("扫描完成", en: "Scan Complete") }
